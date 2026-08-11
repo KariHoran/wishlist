@@ -32,7 +32,7 @@ export default function RegisterPage() {
         setLoading(false);
         return;
       }
-      const loginResult = await Promise.race([
+      const loginResult = (await Promise.race([
         signIn("credentials", {
           email,
           password,
@@ -42,7 +42,8 @@ export default function RegisterPage() {
         new Promise<never>((_, reject) => {
           setTimeout(() => reject(new Error("timeout")), 10_000);
         }),
-      ]);
+      ])) as { error?: string | null; ok?: boolean } | string | undefined;
+
       if (
         !loginResult ||
         (typeof loginResult !== "string" &&

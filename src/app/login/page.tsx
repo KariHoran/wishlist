@@ -37,27 +37,32 @@ function LoginForm() {
         }),
       ]);
 
+      const signInResult = result as
+        | { error?: string | null; ok?: boolean; url?: string | null }
+        | string
+        | undefined;
+
       // Auth.js may return { error, ok, url } or (in some betas) a URL string
-      if (typeof result === "string") {
-        if (result.includes("error=")) {
+      if (typeof signInResult === "string") {
+        if (signInResult.includes("error=")) {
           setError("Неверный email или пароль");
           return;
         }
-        window.location.assign(result || "/dashboard");
+        window.location.assign(signInResult || "/dashboard");
         return;
       }
 
-      if (!result) {
+      if (!signInResult) {
         setError("Не удалось войти, попробуйте снова");
         return;
       }
 
-      if (result.error || result.ok === false) {
+      if (signInResult.error || signInResult.ok === false) {
         setError("Неверный email или пароль");
         return;
       }
 
-      if (result.url && result.url.includes("error=")) {
+      if (signInResult.url && signInResult.url.includes("error=")) {
         setError("Неверный email или пароль");
         return;
       }
