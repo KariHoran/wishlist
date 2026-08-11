@@ -143,18 +143,21 @@ export default function LoginPage() {
       <img
         src="/decor/halftone-cat.svg"
         alt=""
+        loading="lazy"
+        decoding="async"
         className="pointer-events-none absolute top-10 left-6 hidden w-28 md:block"
       />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/decor/pixel-bunny.svg"
-        alt=""
-        className="pointer-events-none absolute top-1/2 left-8 hidden w-14 -translate-y-1/2 md:block"
+      {/* CSS bg avoids "preloaded but not used" on viewports where decor is hidden */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute top-1/2 left-8 hidden h-14 w-14 -translate-y-1/2 bg-[url('/decor/pixel-bunny.svg')] bg-contain bg-center bg-no-repeat md:block"
       />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/decor/disk.svg"
         alt=""
+        loading="lazy"
+        decoding="async"
         className="pointer-events-none absolute bottom-10 left-10 hidden w-20 md:block"
       />
       <div className="pointer-events-none absolute top-8 right-6 z-10 hidden md:block">
@@ -165,12 +168,16 @@ export default function LoginPage() {
       <img
         src="/decor/orbit-star.svg"
         alt=""
+        loading="lazy"
+        decoding="async"
         className="pointer-events-none absolute right-8 bottom-12 hidden w-24 md:block"
       />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/decor/pixel-star.svg"
         alt=""
+        loading="lazy"
+        decoding="async"
         className="pointer-events-none absolute top-8 left-[42%] hidden w-10 md:block"
       />
 

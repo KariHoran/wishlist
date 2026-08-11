@@ -59,6 +59,10 @@ export function AccountForm({
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (!file) return;
+              if (file.size > 24_000) {
+                setError("Аватар слишком большой — выберите файл до ~20 КБ");
+                return;
+              }
               const reader = new FileReader();
               reader.onload = () => setPreview(String(reader.result));
               reader.readAsDataURL(file);

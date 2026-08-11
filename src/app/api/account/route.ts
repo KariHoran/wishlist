@@ -17,6 +17,15 @@ export async function PATCH(req: Request) {
       ? undefined
       : String(body.avatarUrl);
 
+  // Data-URL avatars bloat the Auth.js JWT (chunked into 70+ Set-Cookie headers)
+  // and break login with net::ERR_HTTP2_PROTOCOL_ERROR. Cap size hard.
+  if (avatarUrl && avatarUrl.startsWith("data:") && avatarUrl.length > 32_000) {
+    return NextResponse.json(
+      { error: "Аватар слишком большой — выберите файл до ~20 КБ" },
+      { status: 400 },
+    );
+  }
+
   const user = await prisma.user.update({
     where: { id: session.user.id },
     data: {

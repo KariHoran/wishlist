@@ -71,12 +71,16 @@ export default function RegisterPage() {
       <img
         src="/decor/notepad.svg"
         alt=""
+        loading="lazy"
+        decoding="async"
         className="pointer-events-none absolute top-8 left-6 hidden w-14 opacity-90 md:block"
       />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/decor/halftone-cat.svg"
         alt=""
+        loading="lazy"
+        decoding="async"
         className="pointer-events-none absolute top-1/3 left-4 hidden w-28 opacity-90 md:block lg:left-16"
       />
       <div className="pointer-events-none absolute top-6 right-4 z-10 hidden md:block lg:right-16">
@@ -87,13 +91,13 @@ export default function RegisterPage() {
       <img
         src="/decor/disk.svg"
         alt=""
+        loading="lazy"
+        decoding="async"
         className="pointer-events-none absolute right-10 bottom-16 hidden w-20 md:block"
       />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/decor/pixel-bunny.svg"
-        alt=""
-        className="pointer-events-none absolute right-6 bottom-6 hidden w-14 md:block"
+      <div
+        aria-hidden
+        className="pointer-events-none absolute right-6 bottom-6 hidden h-14 w-14 bg-[url('/decor/pixel-bunny.svg')] bg-contain bg-center bg-no-repeat md:block"
       />
 
       <main className="relative z-10 mx-auto flex min-h-[calc(100dvh-10px)] w-full max-w-md flex-col items-center justify-center px-4 py-10">
