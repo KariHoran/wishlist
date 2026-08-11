@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { FormEvent, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { PasswordInput } from "@/components/PasswordInput";
@@ -33,28 +34,25 @@ export default function RegisterPage() {
         setLoading(false);
         return;
       }
-      const csrfRes = await fetch("/api/auth/csrf");
-      const { csrfToken } = await csrfRes.json();
-      const loginRes = await fetch("/api/auth/callback/credentials", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          csrfToken,
-          email,
-          password,
-          redirect: "true",
-          callbackUrl: "/register",
+      const loginResult = await Promise.race([
+        signIn("credentials", { email, password, redirect: false }),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error("timeout")), 10_000);
         }),
-      });
-      const loginUrl = new URL(loginRes.url);
-      if (loginUrl.searchParams.has("error") || loginUrl.pathname === "/api/auth/error") {
+      ]);
+      if (loginResult?.error) {
         router.push("/login");
         return;
       }
       router.push("/dashboard");
       router.refresh();
-    } catch {
-      setError("Сеть недоступна");
+    } catch (err) {
+      setError(
+        err instanceof Error && err.message === "timeout"
+          ? "Не удалось войти, попробуйте снова"
+          : "Сеть недоступна",
+      );
+    } finally {
       setLoading(false);
     }
   }

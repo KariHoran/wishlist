@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { FormEvent, Suspense, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { PasswordInput } from "@/components/PasswordInput";
 import { WinSetup, WinWelcome } from "@/components/WinDecor";
+
+const LOGIN_TIMEOUT_MS = 10_000;
 
 function LoginForm() {
   const router = useRouter();
@@ -23,38 +26,32 @@ function LoginForm() {
     const remember = fd.get("remember") === "on";
 
     try {
-      const csrfRes = await fetch("/api/auth/csrf");
-      const { csrfToken } = await csrfRes.json();
-
-      const res = await fetch("/api/auth/callback/credentials", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          csrfToken,
-          email,
-          password,
-          redirect: "true",
-          callbackUrl: "/login",
+      const result = await Promise.race([
+        signIn("credentials", { email, password, redirect: false }),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error("timeout")), LOGIN_TIMEOUT_MS);
         }),
-      });
+      ]);
 
-      const url = new URL(res.url);
-      if (url.searchParams.has("error") || url.pathname === "/api/auth/error") {
+      if (result?.error) {
         setError("Неверный email или пароль");
-        setLoading(false);
         return;
       }
-    } catch {
-      setError("Ошибка сети — попробуйте ещё раз");
-      setLoading(false);
-      return;
-    }
 
-    // remember me: session strategy is JWT; cookie maxAge handled by auth defaults
-    void remember;
-    const callback = search.get("callbackUrl") || "/dashboard";
-    router.push(callback);
-    router.refresh();
+      // remember me: session strategy is JWT; cookie maxAge handled by auth defaults
+      void remember;
+      const callback = search.get("callbackUrl") || "/dashboard";
+      router.push(callback);
+      router.refresh();
+    } catch (err) {
+      if (err instanceof Error && err.message === "timeout") {
+        setError("Не удалось войти, попробуйте снова");
+      } else {
+        setError("Ошибка сети — попробуйте ещё раз");
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
