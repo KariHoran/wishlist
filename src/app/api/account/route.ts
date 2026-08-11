@@ -2,6 +2,20 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+function isAllowedAvatarUrl(value: string): boolean {
+  if (value.startsWith("/decor/")) return true;
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      (url.hostname.endsWith(".public.blob.vercel-storage.com") ||
+        url.hostname === "public.blob.vercel-storage.com")
+    );
+  } catch {
+    return false;
+  }
+}
+
 export async function PATCH(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -12,18 +26,23 @@ export async function PATCH(req: Request) {
   if (!displayName) {
     return NextResponse.json({ error: "Укажите имя" }, { status: 400 });
   }
-  const avatarUrl =
-    body.avatarUrl === null || body.avatarUrl === undefined
-      ? undefined
-      : String(body.avatarUrl);
 
-  // Data-URL avatars bloat the Auth.js JWT (chunked into 70+ Set-Cookie headers)
-  // and break login with net::ERR_HTTP2_PROTOCOL_ERROR. Cap size hard.
-  if (avatarUrl && avatarUrl.startsWith("data:") && avatarUrl.length > 32_000) {
-    return NextResponse.json(
-      { error: "Аватар слишком большой — выберите файл до ~20 КБ" },
-      { status: 400 },
-    );
+  let avatarUrl: string | undefined;
+  if (body.avatarUrl === null) {
+    avatarUrl = "/decor/avatar-cat.svg";
+  } else if (body.avatarUrl !== undefined) {
+    const value = String(body.avatarUrl);
+    // Never persist base64 data URLs in Postgres — they bloat JWT cookies.
+    if (value.startsWith("data:")) {
+      return NextResponse.json(
+        { error: "Загрузите фото заново — старый формат больше не поддерживается" },
+        { status: 400 },
+      );
+    }
+    if (!isAllowedAvatarUrl(value)) {
+      return NextResponse.json({ error: "Некорректный URL аватара" }, { status: 400 });
+    }
+    avatarUrl = value;
   }
 
   const user = await prisma.user.update({
