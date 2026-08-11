@@ -16,9 +16,14 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // Auth.js v5 encrypts cookies with salt = cookie name.
+  // On HTTPS the cookie is `__Secure-authjs.session-token`; without
+  // secureCookie:true getToken looks for `authjs.session-token` and fails,
+  // so /dashboard bounces back to /login even after a successful sign-in.
   const token = await getToken({
     req,
     secret: process.env.AUTH_SECRET,
+    secureCookie: req.nextUrl.protocol === "https:",
   });
 
   if (!token && authRequiredPrefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {

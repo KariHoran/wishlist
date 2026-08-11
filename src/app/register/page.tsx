@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { FormEvent, useState } from "react";
 import { Logo } from "@/components/Logo";
@@ -9,7 +8,6 @@ import { PasswordInput } from "@/components/PasswordInput";
 import { WinSetup, WinWelcome } from "@/components/WinDecor";
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -35,17 +33,25 @@ export default function RegisterPage() {
         return;
       }
       const loginResult = await Promise.race([
-        signIn("credentials", { email, password, redirect: false }),
+        signIn("credentials", {
+          email,
+          password,
+          redirect: false,
+          callbackUrl: "/dashboard",
+        }),
         new Promise<never>((_, reject) => {
           setTimeout(() => reject(new Error("timeout")), 10_000);
         }),
       ]);
-      if (loginResult?.error) {
-        router.push("/login");
+      if (
+        !loginResult ||
+        (typeof loginResult !== "string" &&
+          (loginResult.error || loginResult.ok === false))
+      ) {
+        setError("Аккаунт создан, но войти не удалось — попробуйте на странице входа");
         return;
       }
-      router.push("/dashboard");
-      router.refresh();
+      window.location.assign("/dashboard");
     } catch (err) {
       setError(
         err instanceof Error && err.message === "timeout"

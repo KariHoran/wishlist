@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { FormEvent, Suspense, useState } from "react";
 import { Logo } from "@/components/Logo";
@@ -11,7 +11,6 @@ import { WinSetup, WinWelcome } from "@/components/WinDecor";
 const LOGIN_TIMEOUT_MS = 10_000;
 
 function LoginForm() {
-  const router = useRouter();
   const search = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -27,13 +26,38 @@ function LoginForm() {
 
     try {
       const result = await Promise.race([
-        signIn("credentials", { email, password, redirect: false }),
+        signIn("credentials", {
+          email,
+          password,
+          redirect: false,
+          callbackUrl: search.get("callbackUrl") || "/dashboard",
+        }),
         new Promise<never>((_, reject) => {
           setTimeout(() => reject(new Error("timeout")), LOGIN_TIMEOUT_MS);
         }),
       ]);
 
-      if (result?.error) {
+      // Auth.js may return { error, ok, url } or (in some betas) a URL string
+      if (typeof result === "string") {
+        if (result.includes("error=")) {
+          setError("Неверный email или пароль");
+          return;
+        }
+        window.location.assign(result || "/dashboard");
+        return;
+      }
+
+      if (!result) {
+        setError("Не удалось войти, попробуйте снова");
+        return;
+      }
+
+      if (result.error || result.ok === false) {
+        setError("Неверный email или пароль");
+        return;
+      }
+
+      if (result.url && result.url.includes("error=")) {
         setError("Неверный email или пароль");
         return;
       }
@@ -41,8 +65,8 @@ function LoginForm() {
       // remember me: session strategy is JWT; cookie maxAge handled by auth defaults
       void remember;
       const callback = search.get("callbackUrl") || "/dashboard";
-      router.push(callback);
-      router.refresh();
+      // Full navigation so middleware sees the new session cookie
+      window.location.assign(callback);
     } catch (err) {
       if (err instanceof Error && err.message === "timeout") {
         setError("Не удалось войти, попробуйте снова");
