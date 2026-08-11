@@ -7,6 +7,7 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { PublicListBadge, WinExplorer, WinLoading } from "@/components/WinDecor";
 import { formatPercent, formatRub, itemFundingPercent } from "@/lib/money";
 import { useWishlistRealtime } from "@/hooks/useWishlistRealtime";
+import { useNetwork } from "@/components/NetworkProvider";
 
 export type ClientItem = {
   id: string;
@@ -33,6 +34,7 @@ type Props = {
     emoji: string | null;
     isPublic: boolean;
     ownerId: string;
+    deadline?: string | null;
   };
   items: ClientItem[];
   isOwner: boolean;
@@ -48,10 +50,13 @@ export function WishlistView({
   currentUserId,
 }: Props) {
   const router = useRouter();
+  const { online, requireOnline } = useNetwork();
   useWishlistRealtime(wishlist.id);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [editWishlistOpen, setEditWishlistOpen] = useState(false);
+  const [editItemId, setEditItemId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [cancelModal, setCancelModal] = useState<{
     kind: "item" | "wishlist" | "private";
@@ -63,6 +68,10 @@ export function WishlistView({
   } | null>(null);
 
   const visibleItems = items.filter((i) => i.status !== "CANCELLED");
+  const editItem = useMemo(
+    () => visibleItems.find((i) => i.id === editItemId) ?? null,
+    [visibleItems, editItemId],
+  );
 
   const selected = useMemo(
     () => visibleItems.find((i) => i.id === selectedId) ?? null,
@@ -76,6 +85,7 @@ export function WishlistView({
       : Math.round((collectedCount / visibleItems.length) * 100);
 
   async function deleteWishlist(confirmed = false) {
+    if (!requireOnline()) return;
     if (!confirmed && !cancelModal) {
       setBusy(true);
       const res = await fetch(`/api/wishlists/${wishlist.id}`, { method: "DELETE" });
@@ -116,6 +126,7 @@ export function WishlistView({
   }
 
   async function deleteItem(id: string, confirmed = false) {
+    if (!requireOnline()) return;
     if (!confirmed) {
       setBusy(true);
       const preview = await fetch(`/api/items/${id}`);
@@ -157,6 +168,7 @@ export function WishlistView({
   }
 
   async function itemAction(itemId: string, action: string, amount?: number) {
+    if (!requireOnline()) return;
     if (!currentUserId) {
       router.push(`/login?callbackUrl=/wishlist/${wishlist.id}`);
       return;
@@ -177,6 +189,7 @@ export function WishlistView({
   }
 
   async function togglePublic(confirmed = false) {
+    if (!requireOnline()) return;
     if (!wishlist.isPublic) {
       setBusy(true);
       await fetch(`/api/wishlists/${wishlist.id}`, {
@@ -273,8 +286,21 @@ export function WishlistView({
           <div className="flex flex-wrap items-start gap-4">
             <button
               type="button"
+              onClick={() => {
+                if (!requireOnline()) return;
+                setEditWishlistOpen(true);
+              }}
+              disabled={!online}
+              title={!online ? "Нет соединения" : undefined}
+              className="pixel-font text-xs underline underline-offset-4 leading-normal md:text-sm"
+            >
+              Редактировать
+            </button>
+            <button
+              type="button"
               onClick={() => togglePublic()}
-              disabled={busy}
+              disabled={busy || !online}
+              title={!online ? "Нет соединения" : undefined}
               className="pixel-font text-xs underline underline-offset-4 leading-normal md:text-sm"
             >
               {wishlist.isPublic ? "Сделать личным" : "Сделать публичным"}
@@ -282,6 +308,8 @@ export function WishlistView({
             <button
               type="button"
               onClick={() => deleteWishlist()}
+              disabled={!online}
+              title={!online ? "Нет соединения" : undefined}
               className="pixel-font text-xs text-[#666] underline underline-offset-4 leading-normal md:text-sm"
             >
               Удалить вишлист
@@ -328,17 +356,35 @@ export function WishlistView({
               onClick={() => setSelectedId(item.id)}
             >
               {isOwner && (
-                <button
-                  type="button"
-                  className="absolute top-1 right-2 z-10 text-lg leading-none"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteItem(item.id);
-                  }}
-                  aria-label="Удалить"
-                >
-                  ✕
-                </button>
+                <div className="absolute top-1 right-2 z-10 flex items-center gap-1">
+                  <button
+                    type="button"
+                    className="text-base leading-none"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!requireOnline()) return;
+                      setEditItemId(item.id);
+                    }}
+                    disabled={!online}
+                    title={!online ? "Нет соединения" : "Редактировать"}
+                    aria-label="Редактировать"
+                  >
+                    ✎
+                  </button>
+                  <button
+                    type="button"
+                    className="text-lg leading-none"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteItem(item.id);
+                    }}
+                    disabled={!online}
+                    title={!online ? "Нет соединения" : "Удалить"}
+                    aria-label="Удалить"
+                  >
+                    ✕
+                  </button>
+                </div>
               )}
               <div className="aspect-square border-b-2 border-black bg-[#eee]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -362,7 +408,16 @@ export function WishlistView({
 
       {isOwner && (
         <div className="mt-10 flex justify-center">
-          <button type="button" className="btn-primary px-8" onClick={() => setAddOpen(true)}>
+          <button
+            type="button"
+            className="btn-primary px-8"
+            disabled={!online}
+            title={!online ? "Нет соединения" : undefined}
+            onClick={() => {
+              if (!requireOnline()) return;
+              setAddOpen(true);
+            }}
+          >
             + Добавить предметы
           </button>
         </div>
@@ -425,11 +480,34 @@ export function WishlistView({
       )}
 
       {addOpen && (
-        <AddItemModal
+        <ItemFormModal
           wishlistId={wishlist.id}
           onClose={() => setAddOpen(false)}
           onDone={() => {
             setAddOpen(false);
+            router.refresh();
+          }}
+        />
+      )}
+
+      {editWishlistOpen && (
+        <EditWishlistModal
+          wishlist={wishlist}
+          onClose={() => setEditWishlistOpen(false)}
+          onDone={() => {
+            setEditWishlistOpen(false);
+            router.refresh();
+          }}
+        />
+      )}
+
+      {editItem && (
+        <ItemFormModal
+          wishlistId={wishlist.id}
+          item={editItem}
+          onClose={() => setEditItemId(null)}
+          onDone={() => {
+            setEditItemId(null);
             router.refresh();
           }}
         />
@@ -465,6 +543,7 @@ function ItemModal({
 }) {
   const [chipIn, setChipIn] = useState(false);
   const [amount, setAmount] = useState("");
+  const { online, requireOnline } = useNetwork();
   const fundingPct = itemFundingPercent(item.amountCollected, item.price);
   const isFunding =
     item.status === "FUNDING" || Number(item.amountCollected) > 0 || chipIn;
@@ -515,7 +594,8 @@ function ItemModal({
               {item.status !== "FUNDING" ? (
                 <button
                   type="button"
-                  disabled={busy || item.status === "RESERVED"}
+                  disabled={busy || item.status === "RESERVED" || !online}
+                  title={!online ? "Нет соединения" : undefined}
                   className="btn-primary flex-1"
                   onClick={onStartFunding}
                 >
@@ -524,7 +604,8 @@ function ItemModal({
               ) : (
                 <button
                   type="button"
-                  disabled={busy}
+                  disabled={busy || !online}
+                  title={!online ? "Нет соединения" : undefined}
                   className="btn-secondary flex-1"
                   onClick={onStopFunding}
                 >
@@ -587,8 +668,12 @@ function ItemModal({
               <button
                 type="button"
                 className="btn-primary flex-1"
-                disabled={busy}
-                onClick={() => setChipIn(true)}
+                disabled={busy || !online}
+                title={!online ? "Нет соединения" : undefined}
+                onClick={() => {
+                  if (!requireOnline()) return;
+                  setChipIn(true);
+                }}
               >
                 Скинуться
               </button>
@@ -620,7 +705,8 @@ function ItemModal({
               <button
                 type="button"
                 className="btn-primary flex-1"
-                disabled={busy}
+                disabled={busy || !online}
+                title={!online ? "Нет соединения" : undefined}
                 onClick={onReserve}
               >
                 Зарезервировать
@@ -628,8 +714,12 @@ function ItemModal({
               <button
                 type="button"
                 className="btn-secondary flex-1"
-                disabled={busy}
-                onClick={() => setChipIn(true)}
+                disabled={busy || !online}
+                title={!online ? "Нет соединения" : undefined}
+                onClick={() => {
+                  if (!requireOnline()) return;
+                  setChipIn(true);
+                }}
               >
                 Скинуться
               </button>
@@ -656,7 +746,8 @@ function ItemModal({
               <button
                 type="button"
                 className="btn-secondary w-full"
-                disabled={busy}
+                disabled={busy || !online}
+                title={!online ? "Нет соединения" : undefined}
                 onClick={onUnreserve}
               >
                 Снять бронь
@@ -675,6 +766,7 @@ function ItemModal({
             className="space-y-4"
             onSubmit={(e) => {
               e.preventDefault();
+              if (!requireOnline()) return;
               const n = Number(amount);
               if (!n) return;
               onContribute(n);
@@ -692,7 +784,7 @@ function ItemModal({
               required
             />
             <div className="flex gap-3">
-              <button type="submit" className="btn-primary flex-1" disabled={busy}>
+              <button type="submit" className="btn-primary flex-1" disabled={busy || !online} title={!online ? "Нет соединения" : undefined}>
                 Скинуться
               </button>
               <button
@@ -710,34 +802,200 @@ function ItemModal({
   );
 }
 
-function AddItemModal({
-  wishlistId,
+function EditWishlistModal({
+  wishlist,
   onClose,
   onDone,
 }: {
-  wishlistId: string;
+  wishlist: {
+    id: string;
+    title: string;
+    isPublic: boolean;
+    deadline?: string | null;
+  };
   onClose: () => void;
   onDone: () => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const { online, requireOnline } = useNetwork();
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!requireOnline()) return;
+    setLoading(true);
+    setError(null);
+    const fd = new FormData(e.currentTarget);
+    const res = await fetch(`/api/wishlists/${wishlist.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: fd.get("title"),
+        deadline: fd.get("deadline") || null,
+        isPublic: fd.get("isPublic") === "on",
+      }),
+    });
+    let data = await res.json().catch(() => ({}));
+    if (res.status === 409 && data.requiresConfirmation) {
+      const ok = window.confirm(
+        `В ${data.itemCount} предмет(ах) есть незавершённые сборы. Сделать личным и отменить сборы?`,
+      );
+      if (!ok) {
+        setLoading(false);
+        return;
+      }
+      const retry = await fetch(`/api/wishlists/${wishlist.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: fd.get("title"),
+          deadline: fd.get("deadline") || null,
+          isPublic: false,
+          confirm: true,
+        }),
+      });
+      data = await retry.json().catch(() => ({}));
+      setLoading(false);
+      if (!retry.ok) {
+        setError(data.error ?? "Ошибка");
+        return;
+      }
+      onDone();
+      return;
+    }
+    setLoading(false);
+    if (!res.ok) {
+      setError(data.error ?? "Ошибка");
+      return;
+    }
+    onDone();
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
+        <h2 className="display-font mb-4 text-center text-sm md:text-base">
+          Редактировать вишлист
+        </h2>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div>
+            <label className="pixel-font mb-2 block text-xs">Название</label>
+            <input
+              name="title"
+              required
+              className="input-field"
+              defaultValue={wishlist.title}
+            />
+          </div>
+          <div>
+            <label className="pixel-font mb-2 block text-xs">Дедлайн (необязательно)</label>
+            <input
+              name="deadline"
+              type="date"
+              className="input-field"
+              defaultValue={wishlist.deadline ?? ""}
+            />
+          </div>
+          <label className="mono-font flex items-center gap-2 text-lg">
+            <input
+              type="checkbox"
+              name="isPublic"
+              className="h-4 w-4 accent-black"
+              defaultChecked={wishlist.isPublic}
+            />
+            Публичный список
+          </label>
+          {error && <p className="mono-font text-red-600">{error}</p>}
+          <div className="flex gap-3">
+            <button
+              type="submit"
+              disabled={loading || !online}
+              className="btn-primary flex-1"
+              title={!online ? "Нет соединения" : undefined}
+            >
+              Сохранить
+            </button>
+            <button type="button" className="btn-secondary flex-1" onClick={onClose}>
+              Назад
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ItemFormModal({
+  wishlistId,
+  item,
+  onClose,
+  onDone,
+}: {
+  wishlistId: string;
+  item?: ClientItem;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const editing = Boolean(item);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(item?.imageUrl ?? null);
+  const { online, requireOnline } = useNetwork();
+
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!requireOnline()) return;
     setLoading(true);
     setError(null);
     const fd = new FormData(e.currentTarget);
     const productUrl = String(fd.get("productUrl") ?? "").trim();
     const name = String(fd.get("name") ?? "").trim();
-    const price = fd.get("price");
+    const price = Number(fd.get("price"));
+
+    if (editing && item) {
+      const priceChanging = price !== Number(item.price);
+      const risky =
+        priceChanging &&
+        (item.status === "RESERVED" ||
+          item.status === "FUNDING" ||
+          Number(item.amountCollected) > 0);
+      if (risky) {
+        const ok = window.confirm(
+          "У этого подарка уже есть бронь/взносы — изменение цены может сбить прогресс сбора. Продолжить?",
+        );
+        if (!ok) {
+          setLoading(false);
+          return;
+        }
+      }
+
+      const res = await fetch(`/api/items/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update",
+          name,
+          price,
+          imageUrl: preview,
+          productUrl: productUrl || null,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setLoading(false);
+      if (!res.ok) {
+        setError(data.error ?? "Ошибка");
+        return;
+      }
+      onDone();
+      return;
+    }
 
     const body =
       productUrl && !name
         ? { productUrl }
         : {
             name,
-            price: Number(price),
+            price,
             imageUrl: preview,
             productUrl: productUrl || null,
           };
@@ -766,35 +1024,52 @@ function AddItemModal({
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-panel relative overflow-visible" onClick={(e) => e.stopPropagation()}>
-        <WinLoading className="absolute -top-8 -left-6 z-20 hidden rotate-[-6deg] md:block" />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/decor/orbit-star.svg"
-          alt=""
-          className="pointer-events-none absolute -top-4 -right-8 hidden w-16 md:block"
-        />
-        <WinExplorer className="absolute -right-10 -bottom-16 z-20 hidden rotate-3 md:block" />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/decor/pixel-star.svg"
-          alt=""
-          className="pointer-events-none absolute -bottom-6 -left-8 hidden w-10 md:block"
-        />
+        {!editing && (
+          <>
+            <WinLoading className="absolute -top-8 -left-6 z-20 hidden rotate-[-6deg] md:block" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/decor/orbit-star.svg"
+              alt=""
+              className="pointer-events-none absolute -top-4 -right-8 hidden w-16 md:block"
+            />
+            <WinExplorer className="absolute -right-10 -bottom-16 z-20 hidden rotate-3 md:block" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/decor/pixel-star.svg"
+              alt=""
+              className="pointer-events-none absolute -bottom-6 -left-8 hidden w-10 md:block"
+            />
+          </>
+        )}
 
         <h2 className="display-font mb-5 text-center text-sm md:text-base">
-          Добавить новый предмет
+          {editing ? "Редактировать предмет" : "Добавить новый предмет"}
         </h2>
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
             <label className="pixel-font mb-2 block text-xs">Название предмета</label>
-            <input name="name" className="input-field" />
+            <input
+              name="name"
+              className="input-field"
+              defaultValue={item?.name ?? ""}
+              required={editing}
+            />
           </div>
           <div>
             <label className="pixel-font mb-2 block text-xs">Цена</label>
-            <input name="price" type="number" min="0" step="1" className="input-field" />
+            <input
+              name="price"
+              type="number"
+              min="0"
+              step="1"
+              className="input-field"
+              defaultValue={item ? String(Number(item.price)) : ""}
+              required={editing}
+            />
           </div>
           <label className="btn-primary inline-flex cursor-pointer text-xs">
-            + Загрузить изображение
+            {preview ? "Сменить изображение" : "+ Загрузить изображение"}
             <input
               type="file"
               accept="image/*"
@@ -806,13 +1081,25 @@ function AddItemModal({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={preview} alt="" className="hard-border h-24 w-24 object-cover" />
           )}
-          <button type="submit" disabled={loading} className="btn-primary w-full py-3">
-            + Добавить предмет
+          <button
+            type="submit"
+            disabled={loading || !online}
+            className="btn-primary w-full py-3"
+            title={!online ? "Нет соединения" : undefined}
+          >
+            {editing ? "Сохранить изменения" : "+ Добавить предмет"}
           </button>
-          <p className="pixel-font text-center text-xs">Или</p>
+          {!editing && <p className="pixel-font text-center text-xs">Или</p>}
           <div>
-            <label className="pixel-font mb-2 block text-xs">Вставить ссылку</label>
-            <input name="productUrl" className="input-field" placeholder="https://..." />
+            <label className="pixel-font mb-2 block text-xs">
+              {editing ? "Ссылка на товар" : "Вставить ссылку"}
+            </label>
+            <input
+              name="productUrl"
+              className="input-field"
+              placeholder="https://..."
+              defaultValue={item?.productUrl ?? ""}
+            />
           </div>
           {error && <p className="mono-font text-red-600">{error}</p>}
           <button type="button" className="btn-secondary w-full" onClick={onClose}>
@@ -823,3 +1110,4 @@ function AddItemModal({
     </div>
   );
 }
+

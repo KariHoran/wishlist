@@ -6,6 +6,7 @@ import {
   AVATAR_MAX_INPUT_BYTES,
   compressAvatarFile,
 } from "@/lib/avatar-image";
+import { useNetwork } from "@/components/NetworkProvider";
 
 export function AccountForm({
   displayName,
@@ -19,6 +20,7 @@ export function AccountForm({
   avatarUrl: string | null;
 }) {
   const router = useRouter();
+  const { online, requireOnline } = useNetwork();
   const [preview, setPreview] = useState(avatarUrl);
   const [pendingFile, setPendingFile] = useState<Blob | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -60,6 +62,7 @@ export function AccountForm({
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!requireOnline()) return;
     setMessage(null);
     setError(null);
     setSaving(true);
@@ -154,7 +157,7 @@ export function AccountForm({
       </div>
       {error && <p className="mono-font text-red-600">{error}</p>}
       {message && <p className="mono-font text-green-700">{message}</p>}
-      <button type="submit" className="btn-primary w-full" disabled={saving}>
+      <button type="submit" className="btn-primary w-full" disabled={saving || !online} title={!online ? "Нет соединения" : undefined}>
         {saving ? "Сохранение…" : "Сохранить"}
       </button>
     </form>

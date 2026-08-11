@@ -7,16 +7,20 @@ import { FormEvent, Suspense, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { PasswordInput } from "@/components/PasswordInput";
 import { WinSetup, WinWelcome } from "@/components/WinDecor";
+import { OfflineBanner } from "@/components/NetworkProvider";
+import { useNetwork } from "@/components/NetworkProvider";
 
 const LOGIN_TIMEOUT_MS = 10_000;
 
 function LoginForm() {
   const search = useSearchParams();
+  const { online, requireOnline } = useNetwork();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!requireOnline()) return;
     setError(null);
     setLoading(true);
     const fd = new FormData(e.currentTarget);
@@ -122,7 +126,7 @@ function LoginForm() {
 
       {error && <p className="mono-font text-base text-red-600">{error}</p>}
 
-      <button type="submit" disabled={loading} className="btn-primary w-full py-3 text-base">
+      <button type="submit" disabled={loading || !online} className="btn-primary w-full py-3 text-base" title={!online ? "Нет соединения" : undefined}>
         {loading ? "..." : "Войти"}
       </button>
 
@@ -139,6 +143,7 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <div className="page-frame grid-bg relative overflow-hidden">
+      <OfflineBanner />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/decor/halftone-cat.svg"

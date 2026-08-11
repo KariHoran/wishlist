@@ -8,19 +8,21 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  handle        String         @unique
-  displayName   String
-  passwordHash  String
-  avatarUrl     String?
-  createdAt     DateTime       @default(now())
-  wishlists     Wishlist[]
-  friendsA      Friendship[]   @relation("UserA")
-  friendsB      Friendship[]   @relation("UserB")
-  contributions Contribution[]
-  reservations  Item[]         @relation("ReservedBy")
-  notifications Notification[]
+  id               String          @id @default(cuid())
+  email            String          @unique
+  handle           String          @unique
+  displayName      String
+  passwordHash     String
+  avatarUrl        String?
+  createdAt        DateTime        @default(now())
+  wishlists        Wishlist[]
+  friendsA         Friendship[]    @relation("UserA")
+  friendsB         Friendship[]    @relation("UserB")
+  requestsSent     FriendRequest[] @relation("RequestsSent")
+  requestsReceived FriendRequest[] @relation("RequestsReceived")
+  contributions    Contribution[]
+  reservations     Item[]          @relation("ReservedBy")
+  notifications    Notification[]
 
   @@index([id])
 }
@@ -36,6 +38,21 @@ model Friendship {
   @@unique([userAId, userBId])
   @@index([userAId])
   @@index([userBId])
+}
+
+model FriendRequest {
+  id          String        @id @default(cuid())
+  from        User          @relation("RequestsSent", fields: [fromId], references: [id], onDelete: Cascade)
+  fromId      String
+  to          User          @relation("RequestsReceived", fields: [toId], references: [id], onDelete: Cascade)
+  toId        String
+  status      RequestStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+  respondedAt DateTime?
+
+  @@unique([fromId, toId])
+  @@index([toId, status])
+  @@index([fromId, status])
 }
 
 model Wishlist {
@@ -107,9 +124,17 @@ enum ItemStatus {
   CANCELLED
 }
 
+enum RequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
 enum NotificationType {
   ITEM_RESERVED_BY_YOU
   ITEM_CANCELLED_REFUND_DUE
   REFUND_MARKED_DONE
   GOAL_REACHED
+  FRIEND_REQUEST_RECEIVED
+  FRIEND_REQUEST_ACCEPTED
 }

@@ -115,6 +115,41 @@ export async function PATCH(req: Request, ctx: Ctx) {
   }
 
   try {
+    if (action === "update" && isOwner) {
+      const name = body.name !== undefined ? String(body.name).trim() : undefined;
+      const price =
+        body.price !== undefined && body.price !== null && body.price !== ""
+          ? Number(body.price)
+          : undefined;
+      const imageUrl =
+        body.imageUrl !== undefined ? (body.imageUrl ? String(body.imageUrl) : null) : undefined;
+      const productUrl =
+        body.productUrl !== undefined
+          ? body.productUrl
+            ? String(body.productUrl)
+            : null
+          : undefined;
+
+      if (name !== undefined && !name) {
+        return NextResponse.json({ error: "Название обязательно" }, { status: 400 });
+      }
+      if (price !== undefined && (!Number.isFinite(price) || price < 0)) {
+        return NextResponse.json({ error: "Некорректная цена" }, { status: 400 });
+      }
+
+      const updated = await prisma.item.update({
+        where: { id: itemId },
+        data: {
+          ...(name !== undefined ? { name } : {}),
+          ...(price !== undefined ? { price } : {}),
+          ...(imageUrl !== undefined ? { imageUrl } : {}),
+          ...(productUrl !== undefined ? { productUrl } : {}),
+        },
+      });
+      await publishWishlistUpdate(item.wishlistId);
+      return NextResponse.json(updated);
+    }
+
     if (action === "start_funding" && isOwner) {
       const updated = await prisma.item.update({
         where: { id: itemId },

@@ -74,6 +74,9 @@ export default async function WishlistPage({ params }: Props) {
             emoji: wishlist.emoji,
             isPublic: wishlist.isPublic,
             ownerId: wishlist.ownerId,
+            deadline: wishlist.deadline
+              ? wishlist.deadline.toISOString().slice(0, 10)
+              : null,
           }}
           items={items}
           isOwner={isOwner}

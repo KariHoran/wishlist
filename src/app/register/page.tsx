@@ -6,13 +6,16 @@ import { FormEvent, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { PasswordInput } from "@/components/PasswordInput";
 import { WinSetup, WinWelcome } from "@/components/WinDecor";
+import { OfflineBanner, useNetwork } from "@/components/NetworkProvider";
 
 export default function RegisterPage() {
+  const { online, requireOnline } = useNetwork();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!requireOnline()) return;
     setError(null);
     setLoading(true);
     const fd = new FormData(e.currentTarget);
@@ -66,6 +69,7 @@ export default function RegisterPage() {
 
   return (
     <div className="page-frame grid-bg relative overflow-hidden">
+      <OfflineBanner />
       {/* decor */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -148,7 +152,7 @@ export default function RegisterPage() {
 
           {error && <p className="mono-font text-base text-red-600">{error}</p>}
 
-          <button type="submit" disabled={loading} className="btn-primary w-full py-3 text-base">
+          <button type="submit" disabled={loading || !online} className="btn-primary w-full py-3 text-base" title={!online ? "Нет соединения" : undefined}>
             {loading ? "..." : "Регистрация"}
           </button>
 

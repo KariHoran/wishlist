@@ -253,3 +253,42 @@ textarea {
     font-size: clamp(14px, 4vw, 22px);
   }
 }
+
+.offline-banner {
+  position: sticky;
+  top: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-top: -1rem;
+  margin-bottom: 1rem;
+  padding: 10px 14px;
+  background: linear-gradient(90deg, #ffe08a 0%, #ffb6c8 100%);
+  border-bottom: 3px solid #000;
+  border-top: 2px solid #000;
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: center;
+  color: #000;
+}
+
+.network-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 80;
+  max-width: min(420px, calc(100vw - 24px));
+  padding: 10px 14px;
+  background: #fff;
+  border: 3px solid #000;
+  box-shadow: 4px 4px 0 #000;
+  font-family: var(--font-mono-retro);
+  font-size: 18px;
+  text-align: center;
+}

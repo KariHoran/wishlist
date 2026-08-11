@@ -9,8 +9,10 @@ export type NotificationPayload = {
   wishlistTitle?: string;
   amount?: number;
   actorName?: string;
+  actorHandle?: string;
   contributionId?: string;
   refunded?: boolean;
+  requestId?: string;
 };
 
 export async function createNotification(
@@ -39,6 +41,7 @@ export function formatNotificationText(
     payload.amount != null
       ? `${Number(payload.amount).toLocaleString("ru-RU")} ₽`
       : "";
+  const actor = payload.actorName ?? "Кто-то";
 
   switch (type) {
     case "ITEM_RESERVED_BY_YOU":
@@ -46,9 +49,13 @@ export function formatNotificationText(
     case "ITEM_CANCELLED_REFUND_DUE":
       return `Автор отменил сбор на ${item} — вам полагается возврат ${amount}`;
     case "REFUND_MARKED_DONE":
-      return `${payload.actorName ?? "Автор"} отметил возврат ${amount} за ${item}`;
+      return `${actor} отметил возврат ${amount} за ${item}`;
     case "GOAL_REACHED":
       return `Сбор на ${item}${list} закрыт — 100% собрано!`;
+    case "FRIEND_REQUEST_RECEIVED":
+      return `${actor} хочет добавить вас в друзья`;
+    case "FRIEND_REQUEST_ACCEPTED":
+      return `${actor} принял(а) вашу заявку в друзья`;
     default:
       return "Новое уведомление";
   }

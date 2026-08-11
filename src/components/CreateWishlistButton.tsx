@@ -2,15 +2,18 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { useNetwork } from "@/components/NetworkProvider";
 
 export function CreateWishlistButton() {
   const router = useRouter();
+  const { online, requireOnline } = useNetwork();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!requireOnline()) return;
     setLoading(true);
     setError(null);
     const fd = new FormData(e.currentTarget);
@@ -38,8 +41,12 @@ export function CreateWishlistButton() {
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          if (!requireOnline()) return;
+          setOpen(true);
+        }}
         className="pixel-font text-xs leading-normal underline underline-offset-4 sm:text-sm"
+        title={!online ? "Нет соединения" : undefined}
       >
         + Создать вишлист
       </button>
@@ -65,7 +72,12 @@ export function CreateWishlistButton() {
               </label>
               {error && <p className="text-red-600">{error}</p>}
               <div className="flex gap-3">
-                <button type="submit" disabled={loading} className="btn-primary flex-1">
+                <button
+                  type="submit"
+                  disabled={loading || !online}
+                  className="btn-primary flex-1"
+                  title={!online ? "Нет соединения" : undefined}
+                >
                   Создать
                 </button>
                 <button type="button" className="btn-secondary flex-1" onClick={() => setOpen(false)}>

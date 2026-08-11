@@ -6,6 +6,7 @@ import { Navbar } from "@/components/Navbar";
 import { ProgressBar } from "@/components/ProgressBar";
 import { wishlistProgress } from "@/lib/money";
 import { AddFriendForm } from "@/components/AddFriendForm";
+import { FriendRequestsPanel } from "@/components/FriendRequestsPanel";
 
 export default async function FriendsPage() {
   const session = await auth();
@@ -25,14 +26,34 @@ export default async function FriendsPage() {
     ...user.friendsB.map((f) => f.userA),
   ];
 
-  const friendWishlists = await prisma.wishlist.findMany({
-    where: {
-      isPublic: true,
-      ownerId: { in: friends.map((f) => f.id) },
-    },
-    include: { items: true, owner: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const [incoming, outgoing, friendWishlists] = await Promise.all([
+    prisma.friendRequest.findMany({
+      where: { toId: user.id, status: "PENDING" },
+      include: {
+        from: {
+          select: { id: true, displayName: true, handle: true, avatarUrl: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.friendRequest.findMany({
+      where: { fromId: user.id, status: "PENDING" },
+      include: {
+        to: {
+          select: { id: true, displayName: true, handle: true, avatarUrl: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.wishlist.findMany({
+      where: {
+        isPublic: true,
+        ownerId: { in: friends.map((f) => f.id) },
+      },
+      include: { items: true, owner: true },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
 
   return (
     <div className="page-frame grid-bg">
@@ -41,7 +62,23 @@ export default async function FriendsPage() {
         <h1 className="display-font mb-6 text-2xl md:text-3xl">Друзья</h1>
         <AddFriendForm />
 
-        <div className="mt-8 space-y-4">
+        <div className="mt-8">
+          <FriendRequestsPanel
+            incoming={incoming.map((r) => ({
+              id: r.id,
+              from: r.from,
+              createdAt: r.createdAt.toISOString(),
+            }))}
+            outgoing={outgoing.map((r) => ({
+              id: r.id,
+              to: r.to,
+              createdAt: r.createdAt.toISOString(),
+            }))}
+          />
+        </div>
+
+        <h2 className="pixel-font mb-3 text-sm">Мои друзья</h2>
+        <div className="space-y-4">
           {friends.map((f) => {
             const lists = friendWishlists.filter((w) => w.ownerId === f.id);
             return (
@@ -95,7 +132,9 @@ export default async function FriendsPage() {
             );
           })}
           {friends.length === 0 && (
-            <p className="mono-font text-xl text-[#666]">Пока нет друзей — добавьте по нику</p>
+            <p className="mono-font text-xl text-[#666]">
+              Пока нет друзей — отправьте заявку по нику
+            </p>
           )}
         </div>
       </main>

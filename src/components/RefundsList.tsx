@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatRub } from "@/lib/money";
+import { useNetwork } from "@/components/NetworkProvider";
 
 type RefundGroup = {
   itemId: string;
@@ -18,9 +18,11 @@ type RefundGroup = {
 
 export function RefundsList({ groups }: { groups: RefundGroup[] }) {
   const router = useRouter();
+  const { online, requireOnline } = useNetwork();
   const [busy, setBusy] = useState<string | null>(null);
 
   async function markRefunded(contributionId: string) {
+    if (!requireOnline()) return;
     setBusy(contributionId);
     const res = await fetch(`/api/contributions/${contributionId}/refund`, {
       method: "PATCH",
@@ -37,7 +39,7 @@ export function RefundsList({ groups }: { groups: RefundGroup[] }) {
   if (groups.length === 0) {
     return (
       <div className="hard-border mt-6 bg-white p-8 text-center">
-        <p className="display-font text-sm">Всё возвращено, долгов нет 🎉</p>
+        <p className="display-font text-sm">Всё возвращено, долгов нет</p>
         <p className="mono-font mt-2 text-lg text-[#666]">
           Здесь появятся взносы, которые нужно вернуть вручную после отмены сбора
         </p>
@@ -66,7 +68,8 @@ export function RefundsList({ groups }: { groups: RefundGroup[] }) {
                   <button
                     type="button"
                     className="btn-primary text-[10px]"
-                    disabled={busy === row.id}
+                    disabled={busy === row.id || !online}
+                    title={!online ? "Нет соединения" : undefined}
                     onClick={() => markRefunded(row.id)}
                   >
                     {busy === row.id ? "..." : "Отметить как возвращено"}
