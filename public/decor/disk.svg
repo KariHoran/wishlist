@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 110">
+  <defs>
+    <linearGradient id="cd" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff6ec7"/>
+      <stop offset="25%" stop-color="#ffd166"/>
+      <stop offset="50%" stop-color="#06d6a0"/>
+      <stop offset="75%" stop-color="#118ab2"/>
+      <stop offset="100%" stop-color="#9b5de5"/>
+    </linearGradient>
+  </defs>
+  <circle cx="50" cy="45" r="38" fill="url(#cd)" stroke="#111" stroke-width="3"/>
+  <circle cx="50" cy="45" r="10" fill="#f5f5f5" stroke="#111" stroke-width="2"/>
+  <circle cx="50" cy="45" r="3" fill="#111"/>
+  <text x="50" y="100" text-anchor="middle" font-family="monospace" font-size="14" fill="#111">Disk</text>
+</svg>

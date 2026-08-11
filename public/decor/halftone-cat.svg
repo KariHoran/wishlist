@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+  <defs>
+    <pattern id="d" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="2" height="2" fill="#111"/>
+      <rect x="2" y="2" width="2" height="2" fill="#111"/>
+    </pattern>
+  </defs>
+  <circle cx="80" cy="88" r="48" fill="url(#d)"/>
+  <ellipse cx="48" cy="48" rx="18" ry="28" fill="url(#d)"/>
+  <ellipse cx="112" cy="48" rx="18" ry="28" fill="url(#d)"/>
+  <circle cx="64" cy="82" r="6" fill="#fff"/>
+  <circle cx="96" cy="82" r="6" fill="#fff"/>
+  <circle cx="66" cy="84" r="2" fill="#000"/>
+  <circle cx="98" cy="84" r="2" fill="#000"/>
+  <ellipse cx="80" cy="100" rx="12" ry="7" fill="#fff"/>
+</svg>
