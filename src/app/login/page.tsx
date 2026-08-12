@@ -48,7 +48,7 @@ function LoginForm() {
       // Auth.js may return { error, ok, url } or (in some betas) a URL string
       if (typeof signInResult === "string") {
         if (signInResult.includes("error=")) {
-          setError("РќРµРІРµСЂРЅС‹Р№ email РёР»Рё РїР°СЂРѕР»СЊ");
+          setError("Неверный email или пароль");
           return;
         }
         window.location.assign(signInResult || "/dashboard");
@@ -56,17 +56,17 @@ function LoginForm() {
       }
 
       if (!signInResult) {
-        setError("РќРµ СѓРґР°Р»РѕСЃСЊ РІРѕР№С‚Рё, РїРѕРїСЂРѕР±СѓР№С‚Рµ СЃРЅРѕРІР°");
+        setError("Не удалось войти, попробуйте снова");
         return;
       }
 
       if (signInResult.error || signInResult.ok === false) {
-        setError("РќРµРІРµСЂРЅС‹Р№ email РёР»Рё РїР°СЂРѕР»СЊ");
+        setError("Неверный email или пароль");
         return;
       }
 
       if (signInResult.url && signInResult.url.includes("error=")) {
-        setError("РќРµРІРµСЂРЅС‹Р№ email РёР»Рё РїР°СЂРѕР»СЊ");
+        setError("Неверный email или пароль");
         return;
       }
 
@@ -77,9 +77,9 @@ function LoginForm() {
       window.location.assign(callback);
     } catch (err) {
       if (err instanceof Error && err.message === "timeout") {
-        setError("РќРµ СѓРґР°Р»РѕСЃСЊ РІРѕР№С‚Рё, РїРѕРїСЂРѕР±СѓР№С‚Рµ СЃРЅРѕРІР°");
+        setError("Не удалось войти, попробуйте снова");
       } else {
-        setError("РћС€РёР±РєР° СЃРµС‚Рё вЂ” РїРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰С‘ СЂР°Р·");
+        setError("Ошибка сети — попробуйте ещё раз");
       }
     } finally {
       setLoading(false);
@@ -97,19 +97,19 @@ function LoginForm() {
           name="email"
           type="email"
           required
-          placeholder="Р’Р°С€Р° РїРѕС‡С‚Р°"
+          placeholder="Ваша почта"
           className="input-field"
           autoComplete="email"
         />
       </div>
       <div>
         <label htmlFor="password" className="pixel-font mb-2 block text-sm">
-          РџР°СЂРѕР»СЊ
+          Пароль
         </label>
         <PasswordInput
           id="password"
           name="password"
-          placeholder="Р’Р°С€ РїР°СЂРѕР»СЊ"
+          placeholder="Ваш пароль"
           autoComplete="current-password"
           required
         />
@@ -118,21 +118,21 @@ function LoginForm() {
       <div className="flex items-center justify-between gap-3 text-sm">
         <label className="mono-font flex items-center gap-2 text-lg">
           <input type="checkbox" name="remember" className="h-4 w-4 accent-black" />
-          Р—Р°РїРѕРјРЅРёС‚СЊ РјРµРЅСЏ
+          Запомнить меня
         </label>
-        <span className="pixel-font text-[10px] text-[#aaa]">Р—Р°Р±С‹Р»Рё РїР°СЂРѕР»СЊ?</span>
+        <span className="pixel-font text-[10px] text-[#aaa]">Забыли пароль?</span>
       </div>
 
       {error && <p className="mono-font text-base text-red-600">{error}</p>}
 
-      <button type="submit" disabled={loading || !online} className="btn-primary w-full py-3 text-base" title={!online ? "РќРµС‚ СЃРѕРµРґРёРЅРµРЅРёСЏ" : undefined}>
-        {loading ? "..." : "Р’РѕР№С‚Рё"}
+      <button type="submit" disabled={loading || !online} className="btn-primary w-full py-3 text-base" title={!online ? "Нет соединения" : undefined}>
+        {loading ? "..." : "Войти"}
       </button>
 
       <p className="mono-font text-center text-lg text-[#777]">
-        Р•С‰Рµ РЅРµС‚ Р°РєРєР°СѓРЅС‚Р°?{" "}
+        Еще нет аккаунта?{" "}
         <Link href="/register" className="underline underline-offset-4 leading-normal">
-          Р РµРіРёСЃС‚СЂР°С†РёСЏ
+          Регистрация
         </Link>
       </p>
     </form>
