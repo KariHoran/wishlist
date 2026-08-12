@@ -6,6 +6,7 @@ import { Navbar } from "@/components/Navbar";
 import { ProgressBar } from "@/components/ProgressBar";
 import { wishlistProgress } from "@/lib/money";
 import { CreateWishlistButton } from "@/components/CreateWishlistButton";
+import { DecorImage } from "@/components/DecorImage";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -34,23 +35,42 @@ export default async function DashboardPage() {
 
   return (
     <div className="page-frame grid-bg relative isolate">
-      {/* Decor behind content (main has z-10) */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/decor/paw.svg" alt="" className="page-decor top-24 left-2 hidden w-11 opacity-80 lg:block" />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/decor/pixel-star.svg" alt="" className="page-decor top-28 right-6 hidden w-10 opacity-70 lg:block" />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/decor/halftone-cat.svg" alt="" className="page-decor top-40 left-1/2 hidden w-36 -translate-x-1/2 opacity-25 xl:block" />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/decor/notepad.svg" alt="" className="page-decor bottom-40 left-3 hidden w-11 opacity-70 lg:block" />
-      <span className="page-decor bottom-24 left-8 hidden rotate-[-12deg] font-serif text-3xl text-[#c9a0ff] opacity-80 xl:block">
-        cat
-      </span>
-      <span className="page-decor top-[58%] right-10 hidden rotate-12 font-serif text-2xl text-[#1e3a8a] opacity-80 xl:block">
-        all day
-      </span>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/decor/halftone-cat.svg" alt="" className="page-decor bottom-6 left-1/2 hidden w-14 -translate-x-1/2 opacity-40 xl:block" />
+      <DecorImage
+        src="/decor/cat-halftone-lying.png"
+        width={280}
+        height={160}
+        className="top-36 left-1/2 hidden w-56 -translate-x-1/2 opacity-30 xl:block"
+      />
+      <DecorImage
+        src="/decor/paw-print.png"
+        width={64}
+        height={84}
+        className="top-24 left-2 hidden w-11 opacity-85 lg:block"
+      />
+      <DecorImage
+        src="/decor/star-sparkle-navy.png"
+        width={56}
+        height={56}
+        className="top-28 right-6 hidden w-10 opacity-80 lg:block"
+      />
+      <DecorImage
+        src="/decor/cat-text-lettering.png"
+        width={120}
+        height={80}
+        className="bottom-28 left-4 hidden w-24 rotate-[-12deg] opacity-85 xl:block"
+      />
+      <DecorImage
+        src="/decor/all-day-text.png"
+        width={100}
+        height={100}
+        className="top-[58%] right-6 hidden w-20 rotate-12 opacity-85 xl:block"
+      />
+      <DecorImage
+        src="/decor/cat-halftone-portrait.png"
+        width={80}
+        height={70}
+        className="bottom-6 left-1/2 hidden w-14 -translate-x-1/2 opacity-45 xl:block"
+      />
 
       <Navbar avatarUrl={user.avatarUrl} displayName={user.displayName} />
 

@@ -6,7 +6,7 @@ import { signIn } from "next-auth/react";
 import { FormEvent, Suspense, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { PasswordInput } from "@/components/PasswordInput";
-import { WinSetup, WinWelcome } from "@/components/WinDecor";
+import { DecorImage } from "@/components/DecorImage";
 import { useNetwork } from "@/components/NetworkProvider";
 
 const LOGIN_TIMEOUT_MS = 10_000;
@@ -48,7 +48,7 @@ function LoginForm() {
       // Auth.js may return { error, ok, url } or (in some betas) a URL string
       if (typeof signInResult === "string") {
         if (signInResult.includes("error=")) {
-          setError("Неверный email или пароль");
+          setError("РќРµРІРµСЂРЅС‹Р№ email РёР»Рё РїР°СЂРѕР»СЊ");
           return;
         }
         window.location.assign(signInResult || "/dashboard");
@@ -56,17 +56,17 @@ function LoginForm() {
       }
 
       if (!signInResult) {
-        setError("Не удалось войти, попробуйте снова");
+        setError("РќРµ СѓРґР°Р»РѕСЃСЊ РІРѕР№С‚Рё, РїРѕРїСЂРѕР±СѓР№С‚Рµ СЃРЅРѕРІР°");
         return;
       }
 
       if (signInResult.error || signInResult.ok === false) {
-        setError("Неверный email или пароль");
+        setError("РќРµРІРµСЂРЅС‹Р№ email РёР»Рё РїР°СЂРѕР»СЊ");
         return;
       }
 
       if (signInResult.url && signInResult.url.includes("error=")) {
-        setError("Неверный email или пароль");
+        setError("РќРµРІРµСЂРЅС‹Р№ email РёР»Рё РїР°СЂРѕР»СЊ");
         return;
       }
 
@@ -77,9 +77,9 @@ function LoginForm() {
       window.location.assign(callback);
     } catch (err) {
       if (err instanceof Error && err.message === "timeout") {
-        setError("Не удалось войти, попробуйте снова");
+        setError("РќРµ СѓРґР°Р»РѕСЃСЊ РІРѕР№С‚Рё, РїРѕРїСЂРѕР±СѓР№С‚Рµ СЃРЅРѕРІР°");
       } else {
-        setError("Ошибка сети — попробуйте ещё раз");
+        setError("РћС€РёР±РєР° СЃРµС‚Рё вЂ” РїРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰С‘ СЂР°Р·");
       }
     } finally {
       setLoading(false);
@@ -97,19 +97,19 @@ function LoginForm() {
           name="email"
           type="email"
           required
-          placeholder="Ваша почта"
+          placeholder="Р’Р°С€Р° РїРѕС‡С‚Р°"
           className="input-field"
           autoComplete="email"
         />
       </div>
       <div>
         <label htmlFor="password" className="pixel-font mb-2 block text-sm">
-          Пароль
+          РџР°СЂРѕР»СЊ
         </label>
         <PasswordInput
           id="password"
           name="password"
-          placeholder="Ваш пароль"
+          placeholder="Р’Р°С€ РїР°СЂРѕР»СЊ"
           autoComplete="current-password"
           required
         />
@@ -118,21 +118,21 @@ function LoginForm() {
       <div className="flex items-center justify-between gap-3 text-sm">
         <label className="mono-font flex items-center gap-2 text-lg">
           <input type="checkbox" name="remember" className="h-4 w-4 accent-black" />
-          Запомнить меня
+          Р—Р°РїРѕРјРЅРёС‚СЊ РјРµРЅСЏ
         </label>
-        <span className="pixel-font text-[10px] text-[#aaa]">Забыли пароль?</span>
+        <span className="pixel-font text-[10px] text-[#aaa]">Р—Р°Р±С‹Р»Рё РїР°СЂРѕР»СЊ?</span>
       </div>
 
       {error && <p className="mono-font text-base text-red-600">{error}</p>}
 
-      <button type="submit" disabled={loading || !online} className="btn-primary w-full py-3 text-base" title={!online ? "Нет соединения" : undefined}>
-        {loading ? "..." : "Войти"}
+      <button type="submit" disabled={loading || !online} className="btn-primary w-full py-3 text-base" title={!online ? "РќРµС‚ СЃРѕРµРґРёРЅРµРЅРёСЏ" : undefined}>
+        {loading ? "..." : "Р’РѕР№С‚Рё"}
       </button>
 
       <p className="mono-font text-center text-lg text-[#777]">
-        Еще нет аккаунта?{" "}
+        Р•С‰Рµ РЅРµС‚ Р°РєРєР°СѓРЅС‚Р°?{" "}
         <Link href="/register" className="underline underline-offset-4 leading-normal">
-          Регистрация
+          Р РµРіРёСЃС‚СЂР°С†РёСЏ
         </Link>
       </p>
     </form>
@@ -142,45 +142,41 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <div className="page-frame grid-bg relative isolate overflow-hidden">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/decor/halftone-cat.svg"
-        alt=""
-        loading="lazy"
-        decoding="async"
-        className="page-decor top-10 left-4 hidden w-24 opacity-80 lg:block"
+      <DecorImage
+        src="/decor/cat-halftone-face.png"
+        width={200}
+        height={220}
+        className="top-16 left-2 hidden w-36 opacity-90 lg:block xl:w-48"
       />
-      <div
-        aria-hidden
-        className="page-decor top-1/2 left-6 hidden h-14 w-14 -translate-y-1/2 bg-[url('/decor/pixel-bunny.svg')] bg-contain bg-center bg-no-repeat opacity-80 lg:block"
+      <DecorImage
+        src="/decor/windows-welcome-dialog.png"
+        width={210}
+        height={246}
+        className="top-6 right-4 hidden w-44 opacity-95 lg:block"
       />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/decor/disk.svg"
-        alt=""
-        loading="lazy"
-        decoding="async"
-        className="page-decor bottom-10 left-8 hidden w-16 opacity-80 lg:block"
+      <DecorImage
+        src="/decor/windows-setup-dialog.png"
+        width={220}
+        height={120}
+        className="top-40 right-10 hidden w-48 rotate-2 opacity-95 lg:block"
       />
-      <div className="page-decor top-8 right-4 z-0 hidden opacity-90 lg:block">
-        <WinWelcome />
-        <WinSetup className="mt-[-12px] ml-8 rotate-2" />
-      </div>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/decor/orbit-star.svg"
-        alt=""
-        loading="lazy"
-        decoding="async"
-        className="page-decor right-6 bottom-10 hidden w-20 opacity-80 lg:block"
+      <DecorImage
+        src="/decor/disk-cd.png"
+        width={96}
+        height={125}
+        className="right-8 bottom-20 hidden w-20 opacity-90 lg:block"
       />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/decor/pixel-star.svg"
-        alt=""
-        loading="lazy"
-        decoding="async"
-        className="page-decor top-8 left-[8%] hidden w-9 opacity-70 xl:block"
+      <DecorImage
+        src="/decor/bunny-pixel.png"
+        width={72}
+        height={78}
+        className="right-6 bottom-6 hidden w-14 opacity-90 lg:block"
+      />
+      <DecorImage
+        src="/decor/star-pixel-pastel.png"
+        width={48}
+        height={48}
+        className="top-10 left-[12%] hidden w-10 opacity-80 xl:block"
       />
 
       <main className="relative z-10 mx-auto flex min-h-[calc(100dvh-10px)] w-full max-w-md flex-col items-center justify-center px-4 py-10">

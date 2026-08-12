@@ -5,7 +5,7 @@ import { signIn } from "next-auth/react";
 import { FormEvent, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { PasswordInput } from "@/components/PasswordInput";
-import { WinSetup, WinWelcome } from "@/components/WinDecor";
+import { DecorImage } from "@/components/DecorImage";
 import { useNetwork } from "@/components/NetworkProvider";
 
 export default function RegisterPage() {
@@ -69,44 +69,41 @@ export default function RegisterPage() {
 
   return (
     <div className="page-frame grid-bg relative isolate overflow-hidden">
-      {/* decor — behind form */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/decor/notepad.svg"
-        alt=""
-        loading="lazy"
-        decoding="async"
-        className="page-decor top-8 left-4 hidden w-12 opacity-80 lg:block"
+      <DecorImage
+        src="/decor/cat-halftone-face.png"
+        width={200}
+        height={220}
+        className="top-20 left-2 hidden w-36 opacity-90 lg:block xl:w-44"
       />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/decor/halftone-cat.svg"
-        alt=""
-        loading="lazy"
-        decoding="async"
-        className="page-decor top-1/3 left-3 hidden w-24 opacity-70 lg:block"
+      <DecorImage
+        src="/decor/windows-welcome-dialog.png"
+        width={210}
+        height={246}
+        className="top-4 right-3 hidden w-40 opacity-95 lg:block"
       />
-      <div className="page-decor top-6 right-3 hidden opacity-90 lg:block">
-        <WinWelcome />
-        <WinSetup className="absolute top-16 -right-6 rotate-[-4deg]" />
-      </div>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/decor/disk.svg"
-        alt=""
-        loading="lazy"
-        decoding="async"
-        className="page-decor right-8 bottom-14 hidden w-16 opacity-80 lg:block"
+      <DecorImage
+        src="/decor/windows-setup-dialog.png"
+        width={220}
+        height={120}
+        className="top-44 right-8 hidden w-44 rotate-[-3deg] opacity-95 lg:block"
       />
-      <div
-        aria-hidden
-        className="page-decor right-4 bottom-4 hidden h-12 w-12 bg-[url('/decor/pixel-bunny.svg')] bg-contain bg-center bg-no-repeat opacity-80 lg:block"
+      <DecorImage
+        src="/decor/disk-cd.png"
+        width={96}
+        height={125}
+        className="right-8 bottom-20 hidden w-20 opacity-90 lg:block"
+      />
+      <DecorImage
+        src="/decor/bunny-pixel.png"
+        width={72}
+        height={78}
+        className="right-5 bottom-5 hidden w-14 opacity-90 lg:block"
       />
 
       <main className="relative z-10 mx-auto flex min-h-[calc(100dvh-10px)] w-full max-w-md flex-col items-center justify-center px-4 py-10">
         <Logo size="lg" href={null} />
         <p className="pixel-font mt-3 mb-8 text-center text-xs md:text-sm">
-          Welcome back! Let&apos;s check your wishes
+          Create an account &amp; start wishing
         </p>
 
         <form onSubmit={onSubmit} className="hard-border w-full space-y-5 bg-white/90 p-5 md:p-6">

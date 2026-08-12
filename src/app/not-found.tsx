@@ -1,40 +1,56 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
-import { WinErrorStack } from "@/components/WinDecor";
+import { DecorImage } from "@/components/DecorImage";
+import Image from "next/image";
 
 export default function NotFound() {
   return (
     <div
-      className="page-frame relative overflow-hidden text-white"
+      className="page-frame relative isolate overflow-hidden text-white"
       style={{
-        backgroundImage:
-          "url('/decor/bliss.svg'), linear-gradient(180deg, #5b9bd5 0%, #5b9bd5 42%, #7ec850 42%, #3d8b37 100%)",
+        backgroundImage: "url('/decor/windows-xp-wallpaper.jpg')",
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
     >
-      {/* desktop icons */}
-      <div className="absolute top-8 left-6 z-10 space-y-5 text-center text-xs">
+      {/* desktop icons — decorative, non-interactive */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute top-8 left-6 z-0 hidden space-y-5 text-center text-xs md:block"
+      >
         {[
-          { icon: "🖥️", label: "Computer" },
-          { icon: "💿", label: "Disk" },
-          { icon: "📁", label: "File" },
-          { icon: "📂", label: "Documents" },
+          { src: "/decor/computer-icon.png", label: "Computer", w: 48, h: 64 },
+          { src: "/decor/disk-cd.png", label: "Disk", w: 48, h: 62 },
+          { src: "/decor/textfile-icon.png", label: "File", w: 40, h: 40 },
+          { src: "/decor/folder-icon.png", label: "Documents", w: 48, h: 44 },
         ].map((d) => (
-          <div key={d.label} className="w-16">
-            <div className="text-3xl drop-shadow">{d.icon}</div>
+          <div key={d.label} className="flex w-16 flex-col items-center">
+            <Image src={d.src} alt="" width={d.w} height={d.h} className="drop-shadow" quality={70} />
             <div className="pixel-font mt-1 text-[9px] text-white drop-shadow">{d.label}</div>
           </div>
         ))}
       </div>
 
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/decor/paw.svg" alt="" className="pointer-events-none absolute top-8 right-40 z-0 hidden w-12 md:block" />
-      <WinErrorStack className="pointer-events-none absolute top-10 right-8 z-0 hidden md:block" />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/decor/pixel-bunny.svg" alt="" className="pointer-events-none absolute top-44 right-10 z-0 hidden w-12 brightness-0 invert md:block" />
+      <DecorImage
+        src="/decor/paw-print-pink.png"
+        width={56}
+        height={48}
+        className="top-8 right-44 hidden w-12 opacity-90 md:block"
+      />
+      <DecorImage
+        src="/decor/windows-error-stack.png"
+        width={280}
+        height={170}
+        className="top-10 right-6 hidden w-56 opacity-95 md:block lg:w-64"
+      />
+      <DecorImage
+        src="/decor/bunny-pixel.png"
+        width={64}
+        height={70}
+        className="top-48 right-10 hidden w-12 opacity-90 md:block"
+      />
 
-      <main className="relative z-20 flex min-h-[calc(100dvh-10px)] flex-col items-center justify-center px-4 text-center">
+      <main className="relative z-10 flex min-h-[calc(100dvh-10px)] flex-col items-center justify-center px-4 text-center">
         <Logo size="md" href="/" light />
         <p
           className="display-font mt-10 text-[72px] leading-none text-white md:text-[120px]"
@@ -51,24 +67,34 @@ export default function NotFound() {
           className="pixel-font mt-4 inline-flex items-center gap-2 text-sm underline underline-offset-4 leading-normal"
         >
           Вернуться на главную
-          <span aria-hidden className="text-lg">
-            👆
-          </span>
+          <Image
+            src="/decor/cursor-hand.png"
+            alt=""
+            width={28}
+            height={44}
+            className="inline-block"
+            quality={70}
+          />
         </Link>
       </main>
 
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/decor/halftone-cat.svg"
-        alt=""
-        className="pointer-events-none absolute bottom-6 left-6 z-10 hidden w-28 brightness-0 invert md:block"
+      <DecorImage
+        src="/decor/hourglass-icon.png"
+        width={40}
+        height={70}
+        className="bottom-28 left-36 hidden w-10 opacity-90 md:block"
       />
-      <span className="absolute bottom-24 left-36 z-10 hidden text-4xl md:block">⏳</span>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/decor/halftone-cat.svg"
-        alt=""
-        className="pointer-events-none absolute right-8 bottom-6 z-10 hidden w-32 rotate-12 opacity-90 brightness-0 invert md:block"
+      <DecorImage
+        src="/decor/wolf-halftone-yawn.png"
+        width={140}
+        height={164}
+        className="bottom-4 left-4 hidden w-28 opacity-90 md:block"
+      />
+      <DecorImage
+        src="/decor/cat-halftone-sitting.png"
+        width={140}
+        height={210}
+        className="right-6 bottom-4 hidden w-28 rotate-6 opacity-90 md:block"
       />
     </div>
   );

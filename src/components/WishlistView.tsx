@@ -4,7 +4,9 @@ import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ProgressBar } from "@/components/ProgressBar";
-import { PublicListBadge, WinExplorer, WinLoading } from "@/components/WinDecor";
+import { PublicListBadge } from "@/components/WinDecor";
+import { DecorImage } from "@/components/DecorImage";
+import Image from "next/image";
 import { formatPercent, formatRub, itemFundingPercent } from "@/lib/money";
 import { useWishlistRealtime } from "@/hooks/useWishlistRealtime";
 import { useNetwork } from "@/components/NetworkProvider";
@@ -251,29 +253,23 @@ export function WishlistView({
       {isGuestView && <PublicListBadge />}
 
       {/* Decor stays in page gutters / behind content — never over text */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/decor/envelope.svg"
-        alt=""
-        className="page-decor top-[72%] left-0 hidden w-12 opacity-70 lg:block"
+      <DecorImage
+        src="/decor/envelope-pink.png"
+        width={72}
+        height={84}
+        className="top-[72%] left-0 hidden w-12 opacity-80 lg:block"
       />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/decor/notepad.svg"
-        alt=""
-        className="page-decor right-0 bottom-16 hidden w-11 opacity-70 lg:block"
+      <DecorImage
+        src="/decor/star-pixel-pastel.png"
+        width={48}
+        height={48}
+        className="right-2 top-8 hidden w-8 opacity-70 lg:block"
       />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/decor/pixel-star.svg"
-        alt=""
-        className="page-decor right-2 top-8 hidden w-8 opacity-60 lg:block"
-      />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/decor/halftone-cat.svg"
-        alt=""
-        className="page-decor bottom-4 left-[62%] hidden w-12 -translate-x-1/2 opacity-50 xl:block"
+      <DecorImage
+        src="/decor/cat-halftone-portrait.png"
+        width={72}
+        height={62}
+        className="bottom-4 left-[62%] hidden w-12 -translate-x-1/2 opacity-55 xl:block"
       />
 
       <div className="relative z-10">
@@ -646,11 +642,11 @@ function ItemModal({
             </div>
 
               <div className="relative space-y-2 pl-0 sm:pl-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/decor/halftone-cat.svg"
-                alt=""
-                className="page-decor -left-10 top-2 hidden w-14 opacity-30 xl:block"
+              <DecorImage
+                src="/decor/cat-halftone-face.png"
+                width={72}
+                height={80}
+                className="-left-10 top-2 hidden w-14 opacity-30 xl:block"
               />
               <div className="relative z-10 space-y-2">
               {(item.contributions ?? []).map((c, idx) => (
@@ -1031,19 +1027,41 @@ function ItemFormModal({
       <div className="modal-panel relative overflow-visible" onClick={(e) => e.stopPropagation()}>
         {!editing && (
           <>
-            <WinLoading className="absolute -top-8 -left-6 z-20 hidden rotate-[-6deg] md:block" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/decor/orbit-star.svg"
+            <Image
+              src="/decor/hourglass-icon.png"
               alt=""
-              className="pointer-events-none absolute -top-4 -right-8 hidden w-16 md:block"
+              width={48}
+              height={84}
+              quality={70}
+              draggable={false}
+              className="pointer-events-none absolute -top-10 -left-4 z-20 hidden w-10 rotate-[-6deg] md:block"
             />
-            <WinExplorer className="absolute -right-10 -bottom-16 z-20 hidden rotate-3 md:block" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/decor/pixel-star.svg"
+            <Image
+              src="/decor/star-sparkle-navy.png"
               alt=""
-              className="pointer-events-none absolute -bottom-6 -left-8 hidden w-10 md:block"
+              width={64}
+              height={64}
+              quality={70}
+              draggable={false}
+              className="pointer-events-none absolute -top-4 -right-8 z-20 hidden w-14 md:block"
+            />
+            <Image
+              src="/decor/windows-explorer-window.png"
+              alt=""
+              width={180}
+              height={166}
+              quality={70}
+              draggable={false}
+              className="pointer-events-none absolute -right-12 -bottom-20 z-20 hidden w-36 rotate-3 opacity-95 md:block"
+            />
+            <Image
+              src="/decor/star-pixel-pastel.png"
+              alt=""
+              width={48}
+              height={48}
+              quality={70}
+              draggable={false}
+              className="pointer-events-none absolute -bottom-6 -left-8 z-20 hidden w-10 md:block"
             />
           </>
         )}

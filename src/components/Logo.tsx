@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export function Logo({
   size = "md",
@@ -14,13 +15,19 @@ export function Logo({
     md: "text-2xl",
     lg: "text-4xl md:text-5xl",
   };
+  const icon = { sm: 18, md: 24, lg: 36 }[size];
   const content = (
     <span
       className={`pixel-font ${sizes[size]} ${light ? "text-white" : "text-black"} inline-flex items-center gap-2`}
     >
-      <span aria-hidden className="inline-block leading-none">
-        ✦
-      </span>
+      <Image
+        src="/decor/sparkle-pixel-pair.png"
+        alt=""
+        width={icon}
+        height={Math.round(icon * 0.8)}
+        className="inline-block"
+        quality={70}
+      />
       Wishlist
     </span>
   );
