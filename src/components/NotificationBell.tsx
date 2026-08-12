@@ -92,11 +92,11 @@ export function NotificationBell() {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/decor/envelope-nav.png"
+          src="/decor/envelope.svg"
           alt=""
-          width={24}
-          height={24}
-          className="h-6 w-6 object-contain"
+          width={26}
+          height={20}
+          className="h-6 w-7"
           draggable={false}
         />
         {unreadCount > 0 && (
