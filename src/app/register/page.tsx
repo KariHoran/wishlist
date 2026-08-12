@@ -70,10 +70,16 @@ export default function RegisterPage() {
   return (
     <div className="page-frame grid-bg relative isolate overflow-hidden">
       <DecorImage
+        src="/decor/textfile-icon.png"
+        width={48}
+        height={48}
+        className="top-8 left-4 hidden w-11 opacity-90 lg:block"
+      />
+      <DecorImage
         src="/decor/cat-halftone-face.png"
         width={200}
         height={220}
-        className="top-20 left-2 hidden w-36 opacity-90 lg:block xl:w-44"
+        className="top-1/3 left-2 hidden w-36 opacity-95 lg:block xl:w-44"
       />
       <DecorImage
         src="/decor/windows-welcome-dialog.png"
@@ -85,7 +91,7 @@ export default function RegisterPage() {
         src="/decor/windows-setup-dialog.png"
         width={220}
         height={120}
-        className="top-44 right-8 hidden w-44 rotate-[-3deg] opacity-95 lg:block"
+        className="bottom-28 left-4 hidden w-44 rotate-[-3deg] opacity-95 lg:block"
       />
       <DecorImage
         src="/decor/disk-cd.png"
@@ -103,10 +109,10 @@ export default function RegisterPage() {
       <main className="relative z-10 mx-auto flex min-h-[calc(100dvh-10px)] w-full max-w-md flex-col items-center justify-center px-4 py-10">
         <Logo size="lg" href={null} />
         <p className="pixel-font mt-3 mb-8 text-center text-xs md:text-sm">
-          Create an account &amp; start wishing
+          Welcome back! Let&apos;s check your wishes
         </p>
 
-        <form onSubmit={onSubmit} className="hard-border w-full space-y-5 bg-white/90 p-5 md:p-6">
+        <form onSubmit={onSubmit} className="hard-border shadow-offset w-full space-y-5 bg-white p-5 md:p-6">
           <div>
             <label htmlFor="email" className="pixel-font mb-2 block text-sm">
               Email

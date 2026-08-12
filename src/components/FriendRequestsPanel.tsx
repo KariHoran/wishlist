@@ -67,9 +67,11 @@ export function FriendRequestsPanel({
                 <div className="flex min-w-0 items-center gap-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={r.from.avatarUrl || "/decor/avatar-cat.svg"}
+                    src={r.from.avatarUrl || "/decor/avatar-halftone-cat.png"}
                     alt=""
-                    className="h-10 w-10 shrink-0 rounded-full border-2 border-black object-cover grayscale"
+                    width={40}
+                    height={40}
+                    className="h-10 w-10 shrink-0 rounded-full border-2 border-black object-cover"
                   />
                   <div className="min-w-0">
                     <p className="pixel-font truncate text-xs">{r.from.displayName}</p>
@@ -114,9 +116,11 @@ export function FriendRequestsPanel({
                 <div className="flex min-w-0 items-center gap-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={r.to.avatarUrl || "/decor/avatar-cat.svg"}
+                    src={r.to.avatarUrl || "/decor/avatar-halftone-cat.png"}
                     alt=""
-                    className="h-10 w-10 shrink-0 rounded-full border-2 border-black object-cover grayscale"
+                    width={40}
+                    height={40}
+                    className="h-10 w-10 shrink-0 rounded-full border-2 border-black object-cover"
                   />
                   <div className="min-w-0">
                     <p className="pixel-font truncate text-xs">{r.to.displayName}</p>

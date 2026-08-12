@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 56" fill="none" shape-rendering="crispEdges">
+  <!-- pink envelope, black outline  navbar notification icon -->
+  <path d="M6 16h52v32H6V16z" fill="#ff9ec4" stroke="#000" stroke-width="3"/>
+  <path d="M6 16l26 18L58 16" fill="none" stroke="#000" stroke-width="3"/>
+  <path d="M6 48l20-14M58 48L38 34" fill="none" stroke="#000" stroke-width="2.5"/>
+  <rect x="20" y="8" width="24" height="14" fill="#ffe9f2" stroke="#000" stroke-width="2.5"/>
+  <path d="M24 13h16M24 17h12" stroke="#000" stroke-width="2"/>
+</svg>

@@ -285,6 +285,12 @@ textarea {
   user-select: none;
 }
 
+/* Keep Floyd–Steinberg / halftone dots crisp when CSS scales slightly */
+.halftone-img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
 .network-toast {
   position: fixed;
   left: 50%;

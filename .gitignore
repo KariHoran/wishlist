@@ -47,3 +47,7 @@ next-env.d.ts
 npm-install.log
 
 .env*
+
+# local unprocessed decor backups
+public/decor/*.src.png
+

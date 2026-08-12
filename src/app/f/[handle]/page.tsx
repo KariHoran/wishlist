@@ -47,9 +47,11 @@ export default async function PublicFriendPage({ params }: Props) {
         <div className="mb-6 flex items-start gap-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={profile.avatarUrl || "/decor/avatar-cat.svg"}
+            src={profile.avatarUrl || "/decor/avatar-halftone-cat.png"}
             alt=""
-            className="h-14 w-14 rounded-full border-2 border-black object-cover grayscale"
+            width={56}
+            height={56}
+            className="h-14 w-14 rounded-full border-2 border-black object-cover"
           />
           <div>
             <h1 className="display-font text-2xl">{profile.displayName}</h1>

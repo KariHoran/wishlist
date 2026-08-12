@@ -114,8 +114,10 @@ export function AccountForm({
       <div className="flex items-center gap-4">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={preview || "/decor/avatar-cat.svg"}
+          src={preview || "/decor/avatar-halftone-cat.png"}
           alt=""
+          width={64}
+          height={64}
           className="h-16 w-16 rounded-full border-2 border-black object-cover"
         />
         <div className="space-y-1">

@@ -7,6 +7,8 @@ type Props = {
   className?: string;
   alt?: string;
   priority?: boolean;
+  /** Keep dither/halftone dots — skip Next optimizer (WebP softens grain) */
+  preserveGrain?: boolean;
 };
 
 /** Decorative sticker/photo — always non-interactive, behind content via .page-decor */
@@ -17,7 +19,12 @@ export function DecorImage({
   className = "",
   alt = "",
   priority = false,
+  preserveGrain = false,
 }: Props) {
+  const grain =
+    preserveGrain ||
+    /halftone|wolf-halftone|cat-halftone/i.test(src);
+
   return (
     <Image
       src={src}
@@ -25,9 +32,10 @@ export function DecorImage({
       width={width}
       height={height}
       priority={priority}
-      quality={70}
+      quality={grain ? 100 : 70}
+      unoptimized={grain}
       draggable={false}
-      className={`page-decor max-w-none ${className}`}
+      className={`page-decor max-w-none ${grain ? "halftone-img" : ""} ${className}`}
       sizes={`${width}px`}
     />
   );

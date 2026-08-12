@@ -59,9 +59,11 @@ export function Navbar({
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={avatarUrl || "/decor/avatar-cat.svg"}
+              src={avatarUrl || "/decor/avatar-halftone-cat.png"}
               alt=""
-              className="h-full w-full object-cover grayscale"
+              width={40}
+              height={40}
+              className="h-full w-full object-cover"
             />
           </Link>
         </div>

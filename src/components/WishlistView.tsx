@@ -257,19 +257,25 @@ export function WishlistView({
         src="/decor/envelope-pink.png"
         width={72}
         height={84}
-        className="top-[72%] left-0 hidden w-12 opacity-80 lg:block"
+        className="top-[72%] left-0 hidden w-12 opacity-90 lg:block"
       />
       <DecorImage
         src="/decor/star-pixel-pastel.png"
         width={48}
         height={48}
-        className="right-2 top-8 hidden w-8 opacity-70 lg:block"
+        className="right-2 top-8 hidden w-8 opacity-80 lg:block"
       />
       <DecorImage
-        src="/decor/cat-halftone-portrait.png"
-        width={72}
-        height={62}
-        className="bottom-4 left-[62%] hidden w-12 -translate-x-1/2 opacity-55 xl:block"
+        src="/decor/globe-icon.png"
+        width={56}
+        height={56}
+        className="bottom-8 left-2 hidden w-12 opacity-85 lg:block"
+      />
+      <DecorImage
+        src="/decor/cat-halftone-sitting.png"
+        width={90}
+        height={140}
+        className="bottom-4 left-[62%] hidden w-16 -translate-x-1/2 opacity-90 xl:block"
       />
 
       <div className="relative z-10">
@@ -387,7 +393,7 @@ export function WishlistView({
               <div className="aspect-square border-b-2 border-black bg-[#eee]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={item.imageUrl || "/decor/halftone-cat.svg"}
+                  src={item.imageUrl || "/decor/cat-halftone-portrait.png"}
                   alt=""
                   className={`h-full w-full object-cover ${item.status === "RESERVED" ? "grayscale" : ""}`}
                 />
@@ -571,7 +577,7 @@ function ItemModal({
               <div className="hard-border h-28 w-28 shrink-0 overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={item.imageUrl || "/decor/halftone-cat.svg"}
+                  src={item.imageUrl || "/decor/cat-halftone-portrait.png"}
                   alt=""
                   className="h-full w-full object-cover"
                 />
@@ -625,7 +631,7 @@ function ItemModal({
               <div className="hard-border h-32 w-32 shrink-0 overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={item.imageUrl || "/decor/halftone-cat.svg"}
+                  src={item.imageUrl || "/decor/cat-halftone-portrait.png"}
                   alt=""
                   className="h-full w-full object-cover"
                 />
@@ -646,7 +652,7 @@ function ItemModal({
                 src="/decor/cat-halftone-face.png"
                 width={72}
                 height={80}
-                className="-left-10 top-2 hidden w-14 opacity-30 xl:block"
+                className="-left-10 top-2 hidden w-14 opacity-90 xl:block"
               />
               <div className="relative z-10 space-y-2">
               {(item.contributions ?? []).map((c, idx) => (
@@ -694,7 +700,7 @@ function ItemModal({
             <div className="mx-auto hard-border h-48 w-48 overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={item.imageUrl || "/decor/halftone-cat.svg"}
+                src={item.imageUrl || "/decor/cat-halftone-portrait.png"}
                 alt=""
                 className="h-full w-full object-cover"
               />
@@ -734,7 +740,7 @@ function ItemModal({
             <div className="mx-auto hard-border h-48 w-48 overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={item.imageUrl || "/decor/halftone-cat.svg"}
+                src={item.imageUrl || "/decor/cat-halftone-portrait.png"}
                 alt=""
                 className="h-full w-full object-cover grayscale"
               />

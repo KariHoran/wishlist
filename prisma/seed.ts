@@ -18,7 +18,7 @@ async function main() {
       handle: "demo",
       displayName: "Карина",
       passwordHash,
-      avatarUrl: "/decor/avatar-cat.svg",
+      avatarUrl: "/decor/avatar-halftone-cat.png",
     },
   });
 
@@ -31,7 +31,7 @@ async function main() {
       { email: "nastya@wishlist.app", handle: "nastya", displayName: "Настя" },
     ].map((u) =>
       prisma.user.create({
-        data: { ...u, passwordHash, avatarUrl: "/decor/avatar-cat.svg" },
+        data: { ...u, passwordHash, avatarUrl: "/decor/avatar-halftone-cat.png" },
       }),
     ),
   );
@@ -73,7 +73,7 @@ async function main() {
           wishlistId: w.id,
           name: `${t.title} #${i + 1}`,
           price: 500 + i * 100,
-          imageUrl: "/decor/halftone-cat.svg",
+          imageUrl: "/decor/cat-halftone-portrait.png",
         },
       });
     }

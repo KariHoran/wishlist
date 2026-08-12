@@ -87,7 +87,7 @@ function LoginForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="hard-border w-full space-y-5 bg-white/90 p-5 md:p-6">
+    <form onSubmit={onSubmit} className="hard-border shadow-offset w-full space-y-5 bg-white p-5 md:p-6">
       <div>
         <label htmlFor="email" className="pixel-font mb-2 block text-sm">
           Email
@@ -144,9 +144,21 @@ export default function LoginPage() {
     <div className="page-frame grid-bg relative isolate overflow-hidden">
       <DecorImage
         src="/decor/cat-halftone-face.png"
-        width={200}
-        height={220}
-        className="top-16 left-2 hidden w-36 opacity-90 lg:block xl:w-48"
+        width={220}
+        height={240}
+        className="top-14 left-3 hidden w-40 opacity-95 lg:block xl:left-6 xl:w-52"
+      />
+      <DecorImage
+        src="/decor/bunny-pixel.png"
+        width={72}
+        height={78}
+        className="top-1/2 left-6 hidden w-14 -translate-y-1/2 opacity-95 lg:block"
+      />
+      <DecorImage
+        src="/decor/disk-cd.png"
+        width={96}
+        height={125}
+        className="bottom-10 left-6 hidden w-16 opacity-95 lg:block"
       />
       <DecorImage
         src="/decor/windows-welcome-dialog.png"
@@ -158,25 +170,16 @@ export default function LoginPage() {
         src="/decor/windows-setup-dialog.png"
         width={220}
         height={120}
-        className="top-40 right-10 hidden w-48 rotate-2 opacity-95 lg:block"
+        className="top-44 right-10 hidden w-48 rotate-2 opacity-95 lg:block"
       />
-      <DecorImage
-        src="/decor/disk-cd.png"
-        width={96}
-        height={125}
-        className="right-8 bottom-20 hidden w-20 opacity-90 lg:block"
-      />
-      <DecorImage
-        src="/decor/bunny-pixel.png"
-        width={72}
-        height={78}
-        className="right-6 bottom-6 hidden w-14 opacity-90 lg:block"
-      />
-      <DecorImage
-        src="/decor/star-pixel-pastel.png"
-        width={48}
-        height={48}
-        className="top-10 left-[12%] hidden w-10 opacity-80 xl:block"
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/decor/orbit-star.svg"
+        alt=""
+        width={80}
+        height={80}
+        className="page-decor right-8 bottom-10 hidden w-20 opacity-90 lg:block"
+        draggable={false}
       />
 
       <main className="relative z-10 mx-auto flex min-h-[calc(100dvh-10px)] w-full max-w-md flex-col items-center justify-center px-4 py-10">
@@ -184,7 +187,7 @@ export default function LoginPage() {
         <p className="pixel-font mt-3 mb-8 text-center text-xs md:text-sm">
           Welcome back! Let&apos;s check your wishes
         </p>
-        <Suspense fallback={<div className="hard-border w-full p-6">...</div>}>
+        <Suspense fallback={<div className="hard-border shadow-offset w-full p-6">...</div>}>
           <LoginForm />
         </Suspense>
       </main>

@@ -29,7 +29,7 @@ export async function PATCH(req: Request) {
 
   let avatarUrl: string | undefined;
   if (body.avatarUrl === null) {
-    avatarUrl = "/decor/avatar-cat.svg";
+    avatarUrl = "/decor/avatar-halftone-cat.png";
   } else if (body.avatarUrl !== undefined) {
     const value = String(body.avatarUrl);
     // Never persist base64 data URLs in Postgres — they bloat JWT cookies.

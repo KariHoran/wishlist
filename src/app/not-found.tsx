@@ -25,8 +25,7 @@ export default function NotFound() {
           { src: "/decor/folder-icon.png", label: "Documents", w: 48, h: 44 },
         ].map((d) => (
           <div key={d.label} className="flex w-16 flex-col items-center">
-            <Image src={d.src} alt="" width={d.w} height={d.h} className="drop-shadow" quality={70} />
-            <div className="pixel-font mt-1 text-[9px] text-white drop-shadow">{d.label}</div>
+            <Image src={d.src} alt={d.label} width={d.w} height={d.h} className="drop-shadow" unoptimized quality={100} />
           </div>
         ))}
       </div>

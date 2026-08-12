@@ -1,12 +1,11 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/Navbar";
-import { ProgressBar } from "@/components/ProgressBar";
 import { wishlistProgress } from "@/lib/money";
 import { AddFriendForm } from "@/components/AddFriendForm";
 import { FriendRequestsPanel } from "@/components/FriendRequestsPanel";
+import { FriendsList } from "@/components/FriendsList";
 
 export default async function FriendsPage() {
   const session = await auth();
@@ -55,6 +54,25 @@ export default async function FriendsPage() {
     }),
   ]);
 
+  const friendCards = friends.map((f) => {
+    const lists = friendWishlists.filter((w) => w.ownerId === f.id);
+    return {
+      id: f.id,
+      displayName: f.displayName,
+      handle: f.handle,
+      avatarUrl: f.avatarUrl,
+      wishlists: lists.map((w) => {
+        const p = wishlistProgress(w.items);
+        return {
+          id: w.id,
+          title: w.title,
+          percent: p.percent,
+          itemCount: w.items.length,
+        };
+      }),
+    };
+  });
+
   return (
     <div className="page-frame grid-bg">
       <Navbar avatarUrl={user.avatarUrl} displayName={user.displayName} />
@@ -78,65 +96,7 @@ export default async function FriendsPage() {
         </div>
 
         <h2 className="pixel-font mb-3 text-sm">Мои друзья</h2>
-        <div className="space-y-4">
-          {friends.map((f) => {
-            const lists = friendWishlists.filter((w) => w.ownerId === f.id);
-            return (
-              <details key={f.id} className="hard-border bg-white p-4">
-                <summary className="cursor-pointer list-none">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={f.avatarUrl || "/decor/avatar-cat.svg"}
-                        alt=""
-                        className="h-10 w-10 rounded-full border-2 border-black object-cover grayscale"
-                      />
-                      <div>
-                        <p className="pixel-font text-sm">{f.displayName}</p>
-                        <p className="mono-font text-base text-[#666]">@{f.handle}</p>
-                      </div>
-                    </div>
-                    <span className="btn-secondary text-xs">Посмотреть вишлисты</span>
-                  </div>
-                </summary>
-                <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-                  {lists.map((w) => {
-                    const p = wishlistProgress(w.items);
-                    return (
-                      <article key={w.id} className="hard-border p-3">
-                        <h3 className="pixel-font text-sm">{w.title}</h3>
-                        <div className="mt-2">
-                          <ProgressBar percent={p.percent} height={12} />
-                        </div>
-                        <p className="mono-font mt-1 mb-3 text-base">
-                          {p.percent}% · {w.items.length} предметов
-                        </p>
-                        <Link href={`/wishlist/${w.id}`} className="btn-primary w-full text-xs">
-                          Открыть
-                        </Link>
-                      </article>
-                    );
-                  })}
-                  {lists.length === 0 && (
-                    <p className="mono-font text-lg text-[#777]">Нет публичных вишлистов</p>
-                  )}
-                </div>
-                <Link
-                  href={`/f/${f.handle}`}
-                  className="pixel-font mt-3 inline-block text-xs underline underline-offset-4 leading-normal"
-                >
-                  Публичный профиль →
-                </Link>
-              </details>
-            );
-          })}
-          {friends.length === 0 && (
-            <p className="mono-font text-xl text-[#666]">
-              Пока нет друзей — отправьте заявку по нику
-            </p>
-          )}
-        </div>
+        <FriendsList initialFriends={friendCards} />
       </main>
     </div>
   );

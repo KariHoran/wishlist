@@ -91,7 +91,14 @@ export function NotificationBell() {
         aria-label="Уведомления"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/decor/envelope-pink.png" alt="" className="h-6 w-6 object-contain" />
+        <img
+          src="/decor/envelope-nav.svg"
+          alt=""
+          width={24}
+          height={21}
+          className="h-6 w-6"
+          draggable={false}
+        />
         {unreadCount > 0 && (
           <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-black bg-[#ffb6c8] px-1 text-[10px] font-bold">
             {unreadCount > 9 ? "9+" : unreadCount}

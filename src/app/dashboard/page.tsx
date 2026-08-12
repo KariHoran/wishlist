@@ -36,40 +36,46 @@ export default async function DashboardPage() {
   return (
     <div className="page-frame grid-bg relative isolate">
       <DecorImage
-        src="/decor/cat-halftone-lying.png"
+        src="/decor/cat-halftone-face.png"
         width={280}
-        height={160}
-        className="top-36 left-1/2 hidden w-56 -translate-x-1/2 opacity-30 xl:block"
+        height={300}
+        className="top-28 left-1/2 hidden w-52 -translate-x-1/2 opacity-70 xl:block"
       />
       <DecorImage
         src="/decor/paw-print.png"
         width={64}
         height={84}
-        className="top-24 left-2 hidden w-11 opacity-85 lg:block"
+        className="top-24 left-2 hidden w-11 opacity-95 lg:block"
       />
       <DecorImage
-        src="/decor/star-sparkle-navy.png"
-        width={56}
-        height={56}
-        className="top-28 right-6 hidden w-10 opacity-80 lg:block"
+        src="/decor/star-pixel-pastel.png"
+        width={72}
+        height={68}
+        className="top-36 right-4 hidden w-14 opacity-95 lg:block"
+      />
+      <DecorImage
+        src="/decor/windows-explorer-window.png"
+        width={160}
+        height={148}
+        className="top-[42%] left-[46%] hidden w-36 -translate-x-1/2 opacity-90 xl:block"
       />
       <DecorImage
         src="/decor/cat-text-lettering.png"
         width={120}
         height={80}
-        className="bottom-28 left-4 hidden w-24 rotate-[-12deg] opacity-85 xl:block"
+        className="bottom-28 left-4 hidden w-24 rotate-[-12deg] opacity-90 xl:block"
       />
       <DecorImage
         src="/decor/all-day-text.png"
         width={100}
         height={100}
-        className="top-[58%] right-6 hidden w-20 rotate-12 opacity-85 xl:block"
+        className="top-[58%] right-6 hidden w-20 rotate-12 opacity-90 xl:block"
       />
       <DecorImage
-        src="/decor/cat-halftone-portrait.png"
-        width={80}
-        height={70}
-        className="bottom-6 left-1/2 hidden w-14 -translate-x-1/2 opacity-45 xl:block"
+        src="/decor/cat-halftone-sitting.png"
+        width={100}
+        height={150}
+        className="bottom-4 left-1/2 hidden w-16 -translate-x-1/2 opacity-95 xl:block"
       />
 
       <Navbar avatarUrl={user.avatarUrl} displayName={user.displayName} />

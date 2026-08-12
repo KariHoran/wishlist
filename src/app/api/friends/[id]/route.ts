@@ -85,3 +85,39 @@ export async function PATCH(req: Request, { params }: Props) {
 
   return NextResponse.json({ error: "Неизвестное действие" }, { status: 400 });
 }
+
+/** Remove friendship by the other user's id (bidirectional). */
+export async function DELETE(_req: Request, { params }: Props) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const me = session.user.id;
+  const { id: friendId } = await params;
+  if (!friendId || friendId === me) {
+    return NextResponse.json({ error: "Некорректный запрос" }, { status: 400 });
+  }
+
+  const [a, b] = friendshipPair(me, friendId);
+  const friendship = await prisma.friendship.findUnique({
+    where: { userAId_userBId: { userAId: a, userBId: b } },
+  });
+  if (!friendship) {
+    return NextResponse.json({ error: "Дружба не найдена" }, { status: 404 });
+  }
+
+  // Drop friendship + any FriendRequest rows both ways so a new request can be sent cleanly
+  await prisma.$transaction([
+    prisma.friendship.delete({ where: { id: friendship.id } }),
+    prisma.friendRequest.deleteMany({
+      where: {
+        OR: [
+          { fromId: me, toId: friendId },
+          { fromId: friendId, toId: me },
+        ],
+      },
+    }),
+  ]);
+
+  return NextResponse.json({ ok: true });
+}
