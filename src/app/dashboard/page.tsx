@@ -35,11 +35,12 @@ export default async function DashboardPage() {
 
   return (
     <div className="page-frame grid-bg relative isolate">
+      {/* Decor behind content — small stickers in gutters, never over stats/cards */}
       <DecorImage
         src="/decor/cat-halftone-face.png"
-        width={280}
-        height={300}
-        className="top-28 left-1/2 hidden w-52 -translate-x-1/2 opacity-70 xl:block"
+        width={120}
+        height={130}
+        className="top-[7.5rem] left-1/2 hidden w-24 -translate-x-1/2 opacity-80 xl:block"
       />
       <DecorImage
         src="/decor/paw-print.png"
@@ -55,9 +56,9 @@ export default async function DashboardPage() {
       />
       <DecorImage
         src="/decor/windows-explorer-window.png"
-        width={160}
-        height={148}
-        className="top-[42%] left-[46%] hidden w-36 -translate-x-1/2 opacity-90 xl:block"
+        width={140}
+        height={129}
+        className="right-0 bottom-8 hidden w-28 translate-x-1/4 opacity-90 xl:block"
       />
       <DecorImage
         src="/decor/cat-text-lettering.png"
@@ -134,7 +135,7 @@ function StatCard({
   value: string;
 }) {
   return (
-    <div className="hard-border relative z-10 bg-white/95 p-4">
+    <div className="hard-border relative z-10 bg-white p-4">
       <div className="flex items-center gap-2">
         <span className="text-xl">{icon}</span>
         <span className="pixel-font text-xs">{title}</span>
