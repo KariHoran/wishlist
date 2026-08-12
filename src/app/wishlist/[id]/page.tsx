@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/Navbar";
 import { WishlistView } from "@/components/WishlistView";
+import { PublicListBadge } from "@/components/WinDecor";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -101,6 +102,7 @@ export default async function WishlistPage({ params }: Props) {
         avatarUrl={viewer?.avatarUrl ?? null}
         displayName={viewer?.displayName ?? session?.user?.name}
       />
+      {!isOwner && <PublicListBadge />}
       <main className="mx-auto max-w-6xl px-4 py-6 md:px-8">
         <WishlistView
           wishlist={{
@@ -113,6 +115,7 @@ export default async function WishlistPage({ params }: Props) {
               ? wishlist.deadline.toISOString().slice(0, 10)
               : null,
           }}
+          shareToken={isOwner ? wishlist.shareToken : undefined}
           items={items}
           isOwner={isOwner}
           isGuestView={!isOwner}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useNetwork } from "@/components/NetworkProvider";
+import { RetroInlineState } from "@/components/RetroState";
 
 type RefundGroup = {
   itemId: string;
@@ -38,11 +39,11 @@ export function RefundsList({ groups }: { groups: RefundGroup[] }) {
 
   if (groups.length === 0) {
     return (
-      <div className="hard-border mt-6 bg-white p-8 text-center">
-        <p className="display-font text-sm">Всё возвращено, долгов нет</p>
-        <p className="mono-font mt-2 text-lg text-[#666]">
-          Здесь появятся взносы, которые нужно вернуть вручную после отмены сбора
-        </p>
+      <div className="mt-6">
+        <RetroInlineState
+          title="Всё возвращено, долгов нет 🎉"
+          message="Здесь появятся взносы, которые нужно вернуть вручную после отмены сбора."
+        />
       </div>
     );
   }

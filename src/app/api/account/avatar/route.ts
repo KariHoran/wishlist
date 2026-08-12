@@ -1,6 +1,7 @@
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 const MAX_BYTES = 2 * 1024 * 1024;
 
@@ -8,6 +9,13 @@ export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const limit = await enforceRateLimit(RATE_LIMITS.avatarUpload, session.user.id);
+  if (!limit.ok) {
+    return NextResponse.json(limit.body, {
+      status: limit.status,
+      headers: { "Retry-After": String(limit.retryAfterSeconds) },
+    });
   }
 
   const form = await req.formData();

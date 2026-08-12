@@ -6,6 +6,7 @@ import {
   friendshipPair,
   validateFriendRequestSend,
 } from "@/lib/friend-requests";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function GET() {
   const session = await auth();
@@ -45,6 +46,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const me = session.user.id;
+  const limit = await enforceRateLimit(RATE_LIMITS.friendRequest, me);
+  if (!limit.ok) {
+    return NextResponse.json(limit.body, {
+      status: limit.status,
+      headers: { "Retry-After": String(limit.retryAfterSeconds) },
+    });
+  }
+
   const body = await req.json();
   const handle = String(body.handle ?? "")
     .replace(/^@/, "")

@@ -63,13 +63,19 @@ export function NotificationBell() {
       setLoading(true);
       await load();
       setLoading(false);
-      await fetch("/api/notifications", {
+      const prevUnread = unreadCount;
+      const prevItems = items;
+      setUnreadCount(0);
+      setItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      const res = await fetch("/api/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ markAll: true }),
       });
-      setUnreadCount(0);
-      setItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      if (!res.ok) {
+        setUnreadCount(prevUnread);
+        setItems(prevItems);
+      }
     }
   }
 

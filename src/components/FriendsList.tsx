@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { ProgressBar } from "@/components/ProgressBar";
 import { useNetwork } from "@/components/NetworkProvider";
+import { RetroInlineState } from "@/components/RetroState";
 
 export type FriendCard = {
   id: string;
@@ -67,7 +68,7 @@ export function FriendsList({ initialFriends }: { initialFriends: FriendCard[] }
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={f.avatarUrl || DEFAULT_AVATAR}
-                  alt=""
+                  alt={`Аватар пользователя ${f.displayName}`}
                   width={40}
                   height={40}
                   className="h-10 w-10 rounded-full border-2 border-black object-cover"
@@ -111,7 +112,11 @@ export function FriendsList({ initialFriends }: { initialFriends: FriendCard[] }
               </article>
             ))}
             {f.wishlists.length === 0 && (
-              <p className="mono-font text-lg text-[#777]">Нет публичных вишлистов</p>
+              <RetroInlineState
+                compact
+                title="Нет публичных вишлистов"
+                message="Когда он откроет списки для друзей, они появятся здесь."
+              />
             )}
           </div>
           <Link
@@ -123,9 +128,10 @@ export function FriendsList({ initialFriends }: { initialFriends: FriendCard[] }
         </details>
       ))}
       {friends.length === 0 && (
-        <p className="mono-font text-xl text-[#666]">
-          Пока нет друзей — отправьте заявку по нику
-        </p>
+        <RetroInlineState
+          title="Пока нет друзей"
+          message="Отправьте первую заявку по нику."
+        />
       )}
     </div>
   );

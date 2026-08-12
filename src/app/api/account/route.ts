@@ -45,11 +45,17 @@ export async function PATCH(req: Request) {
     avatarUrl = value;
   }
 
+  const emailNotificationsEnabled =
+    body.emailNotificationsEnabled !== undefined
+      ? Boolean(body.emailNotificationsEnabled)
+      : undefined;
+
   const user = await prisma.user.update({
     where: { id: session.user.id },
     data: {
       displayName,
       ...(avatarUrl !== undefined ? { avatarUrl } : {}),
+      ...(emailNotificationsEnabled !== undefined ? { emailNotificationsEnabled } : {}),
     },
   });
 

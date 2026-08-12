@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, slugifyHandle } from "@/lib/password";
+import { enforceRateLimit, getRequestIp, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
   try {
+    const limit = await enforceRateLimit(RATE_LIMITS.auth, getRequestIp(req));
+    if (!limit.ok) {
+      return NextResponse.json(limit.body, {
+        status: limit.status,
+        headers: { "Retry-After": String(limit.retryAfterSeconds) },
+      });
+    }
+
     const body = await req.json();
     const email = String(body.email ?? "")
       .trim()

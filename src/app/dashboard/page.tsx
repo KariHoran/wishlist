@@ -7,6 +7,7 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { wishlistProgress } from "@/lib/money";
 import { CreateWishlistButton } from "@/components/CreateWishlistButton";
 import { DecorImage } from "@/components/DecorImage";
+import { RetroInlineState } from "@/components/RetroState";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -118,9 +119,12 @@ export default async function DashboardPage() {
         </div>
 
         {wishlists.length === 0 && (
-          <p className="mono-font mt-8 text-center text-xl text-[#666]">
-            Пока нет вишлистов — создайте первый!
-          </p>
+          <div className="mt-8">
+            <RetroInlineState
+              title="Пока пусто"
+              message="У вас пока нет вишлистов — создайте первый."
+            />
+          </div>
         )}
       </main>
     </div>

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { useNetwork } from "@/components/NetworkProvider";
+import { ModalDialog } from "@/components/ModalDialog";
 
 export function CreateWishlistButton() {
   const router = useRouter();
@@ -52,22 +53,21 @@ export function CreateWishlistButton() {
       </button>
 
       {open && (
-        <div className="modal-backdrop" onClick={() => setOpen(false)}>
-          <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
+        <ModalDialog onClose={() => setOpen(false)}>
             <h2 className="display-font mb-4 text-center text-sm md:text-base">
               Новый вишлист
             </h2>
             <form onSubmit={onSubmit} className="space-y-4">
               <div>
-                <label className="pixel-font mb-2 block text-xs">Название</label>
-                <input name="title" required className="input-field" placeholder="День рождения" />
+                <label htmlFor="wishlist-title" className="pixel-font mb-2 block text-xs">Название</label>
+                <input id="wishlist-title" name="title" required className="input-field" placeholder="День рождения" />
               </div>
               <div>
-                <label className="pixel-font mb-2 block text-xs">Дедлайн (необязательно)</label>
-                <input name="deadline" type="date" className="input-field" />
+                <label htmlFor="wishlist-deadline" className="pixel-font mb-2 block text-xs">Дедлайн (необязательно)</label>
+                <input id="wishlist-deadline" name="deadline" type="date" className="input-field" />
               </div>
-              <label className="mono-font flex items-center gap-2 text-lg">
-                <input type="checkbox" name="isPublic" className="h-4 w-4 accent-black" />
+              <label htmlFor="wishlist-public" className="mono-font flex items-center gap-2 text-lg">
+                <input id="wishlist-public" type="checkbox" name="isPublic" className="h-4 w-4 accent-black" />
                 Публичный список
               </label>
               {error && <p className="text-red-600">{error}</p>}
@@ -85,8 +85,7 @@ export function CreateWishlistButton() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </ModalDialog>
       )}
     </>
   );

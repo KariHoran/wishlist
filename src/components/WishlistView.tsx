@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ProgressBar } from "@/components/ProgressBar";
@@ -15,6 +15,8 @@ import {
   blobToDataUrl,
   compressItemImageFile,
 } from "@/lib/avatar-image";
+import { RetroInlineState } from "@/components/RetroState";
+import { ModalDialog } from "@/components/ModalDialog";
 
 export type ClientItem = {
   id: string;
@@ -54,6 +56,7 @@ type Props = {
   isOwner: boolean;
   isGuestView: boolean;
   currentUserId?: string;
+  shareToken?: string;
 };
 
 export function WishlistView({
@@ -62,16 +65,21 @@ export function WishlistView({
   isOwner,
   isGuestView,
   currentUserId,
+  shareToken,
 }: Props) {
   const router = useRouter();
   const { online, requireOnline } = useNetwork();
   useWishlistRealtime(wishlist.id);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [localItems, setLocalItems] = useState(items);
+  const [optimisticPending, setOptimisticPending] = useState(0);
   const [addOpen, setAddOpen] = useState(false);
   const [editWishlistOpen, setEditWishlistOpen] = useState(false);
   const [editItemId, setEditItemId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [shareToast, setShareToast] = useState(false);
+  const [currentShareToken, setCurrentShareToken] = useState(shareToken ?? null);
   const [cancelModal, setCancelModal] = useState<{
     kind: "item" | "wishlist" | "private";
     itemId?: string;
@@ -81,7 +89,14 @@ export function WishlistView({
     itemCount?: number;
   } | null>(null);
 
-  const visibleItems = items.filter((i) => i.status !== "CANCELLED");
+  useEffect(() => {
+    if (optimisticPending === 0) {
+      const timer = window.setTimeout(() => setLocalItems(items), 0);
+      return () => window.clearTimeout(timer);
+    }
+  }, [items, optimisticPending]);
+
+  const visibleItems = localItems.filter((i) => i.status !== "CANCELLED");
   const editItem = useMemo(
     () => visibleItems.find((i) => i.id === editItemId) ?? null,
     [visibleItems, editItemId],
@@ -156,12 +171,18 @@ export function WishlistView({
         });
         return;
       }
+      const prev = localItems;
+      setLocalItems((list) => list.filter((i) => i.id !== id));
+      setOptimisticPending((v) => v + 1);
       const res = await fetch(`/api/items/${id}`, { method: "DELETE" });
       setBusy(false);
       if (!res.ok) {
+        setLocalItems(prev);
+        setOptimisticPending((v) => Math.max(0, v - 1));
         alert("Ошибка удаления");
         return;
       }
+      setOptimisticPending((v) => Math.max(0, v - 1));
       router.refresh();
       return;
     }
@@ -181,6 +202,40 @@ export function WishlistView({
     router.refresh();
   }
 
+  const copyShareLink = useCallback(async () => {
+    const token = currentShareToken;
+    if (!token) return;
+    const url = `${window.location.origin}/w/${token}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      // Fallback for browsers without clipboard API
+      const el = document.createElement("textarea");
+      el.value = url;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+    }
+    setShareToast(true);
+    setTimeout(() => setShareToast(false), 2500);
+  }, [currentShareToken]);
+
+  async function regenerateShareToken() {
+    if (!requireOnline()) return;
+    const res = await fetch(`/api/wishlists/${wishlist.id}/share-token`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      alert("Не удалось обновить ссылку");
+      return;
+    }
+    const data = await res.json() as { shareToken: string };
+    setCurrentShareToken(data.shareToken);
+    setShareToast(true);
+    setTimeout(() => setShareToast(false), 2500);
+  }
+
   async function itemAction(
     itemId: string,
     action: string,
@@ -194,9 +249,98 @@ export function WishlistView({
   ) {
     if (!requireOnline()) return;
     if (!currentUserId) {
-      router.push(`/login?callbackUrl=/wishlist/${wishlist.id}`);
+      const redirect = shareToken
+        ? `/w/${shareToken}`
+        : `/wishlist/${wishlist.id}`;
+      router.push(`/register?redirect=${encodeURIComponent(redirect)}`);
       return;
     }
+    const prev = localItems;
+    if (action === "reserve") {
+      setLocalItems((list) =>
+        list.map((it) =>
+          it.id !== itemId
+            ? it
+            : {
+                ...it,
+                status: "RESERVED",
+                reservedById: currentUserId ?? it.reservedById,
+                reservationMessage: extra?.message ?? null,
+                reservationAnonymous: Boolean(extra?.anonymous),
+              },
+        ),
+      );
+      setOptimisticPending((v) => v + 1);
+    } else if (action === "unreserve") {
+      setLocalItems((list) =>
+        list.map((it) =>
+          it.id !== itemId
+            ? it
+            : {
+                ...it,
+                status: "AVAILABLE",
+                reservedById: null,
+                reservationMessage: null,
+                reservationAnonymous: false,
+              },
+        ),
+      );
+      setOptimisticPending((v) => v + 1);
+    } else if (action === "contribute") {
+      setLocalItems((list) =>
+        list.map((it) =>
+          it.id !== itemId
+            ? it
+            : {
+                ...it,
+                status: "FUNDING",
+                amountCollected:
+                  Number(it.amountCollected) +
+                  Number(
+                    extra?.amount ??
+                      (it.fundingMode === "FIXED_SPLIT"
+                        ? it.splitAmountPerPerson ?? 0
+                        : 0),
+                  ),
+              },
+        ),
+      );
+      setOptimisticPending((v) => v + 1);
+    } else if (action === "start_funding") {
+      setLocalItems((list) =>
+        list.map((it) =>
+          it.id !== itemId
+            ? it
+            : {
+                ...it,
+                status: "FUNDING",
+                fundingMode: extra?.fundingMode ?? "FREE",
+                splitParticipants: extra?.splitParticipants ?? null,
+                splitAmountPerPerson:
+                  extra?.fundingMode === "FIXED_SPLIT" && extra.splitParticipants
+                    ? Math.ceil(Number(it.price) / extra.splitParticipants)
+                    : null,
+              },
+        ),
+      );
+      setOptimisticPending((v) => v + 1);
+    } else if (action === "stop_funding") {
+      setLocalItems((list) =>
+        list.map((it) =>
+          it.id !== itemId
+            ? it
+            : {
+                ...it,
+                status: Number(it.amountCollected) > 0 ? "FUNDING" : "AVAILABLE",
+                fundingMode: "FREE",
+                splitParticipants: null,
+                splitAmountPerPerson: null,
+              },
+        ),
+      );
+      setOptimisticPending((v) => v + 1);
+    }
+
     setBusy(true);
     const res = await fetch(`/api/items/${itemId}`, {
       method: "PATCH",
@@ -206,8 +350,27 @@ export function WishlistView({
     setBusy(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
+      if (
+        action === "reserve" ||
+        action === "unreserve" ||
+        action === "contribute" ||
+        action === "start_funding" ||
+        action === "stop_funding"
+      ) {
+        setLocalItems(prev);
+        setOptimisticPending((v) => Math.max(0, v - 1));
+      }
       alert(data.error ?? "Ошибка");
       return;
+    }
+    if (
+      action === "reserve" ||
+      action === "unreserve" ||
+      action === "contribute" ||
+      action === "start_funding" ||
+      action === "stop_funding"
+    ) {
+      setOptimisticPending((v) => Math.max(0, v - 1));
     }
     router.refresh();
   }
@@ -272,7 +435,6 @@ export function WishlistView({
 
   return (
     <div className="relative isolate">
-      {isGuestView && <PublicListBadge />}
 
       {/* Decor stays in page gutters / behind content — never over text */}
       <DecorImage
@@ -331,6 +493,27 @@ export function WishlistView({
             >
               {wishlist.isPublic ? "Сделать личным" : "Сделать публичным"}
             </button>
+            {wishlist.isPublic && currentShareToken && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => void copyShareLink()}
+                  className="pixel-font text-xs underline underline-offset-4 leading-normal md:text-sm"
+                  title="Скопировать публичную ссылку"
+                >
+                  {shareToast ? "✓ Скопировано!" : "Поделиться ссылкой"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void regenerateShareToken()}
+                  disabled={!online}
+                  className="pixel-font text-xs text-[#888] underline underline-offset-4 leading-normal md:text-sm"
+                  title="Сбросить старую ссылку и выпустить новую"
+                >
+                  Обновить ссылку
+                </button>
+              </>
+            )}
             <button
               type="button"
               onClick={() => deleteWishlist()}
@@ -361,8 +544,28 @@ export function WishlistView({
         <ProgressBar percent={percent} segmented height={22} />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {visibleItems.map((item) => {
+      {visibleItems.length === 0 ? (
+        <div className="mt-6">
+          <RetroInlineState
+            title={isOwner ? "Пока нет предметов" : "Предметы отсутствуют"}
+            message={
+              isOwner
+                ? "Добавьте подарок в список — и друзья смогут зарезервировать или скинуться."
+                : "Этот список ещё не содержит доступных подарков."
+            }
+            actionLabel={isOwner ? "+ Добавить предметы" : undefined}
+            onAction={
+              isOwner
+                ? () => {
+                    setAddOpen(true);
+                  }
+                : undefined
+            }
+          />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {visibleItems.map((item) => {
           const statusLabel =
             item.status === "RESERVED"
               ? "Забронировано"
@@ -416,7 +619,7 @@ export function WishlistView({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={item.imageUrl || "/decor/cat-halftone-portrait.png"}
-                  alt=""
+                  alt={`Фото подарка: ${item.name}`}
                   className={`h-full w-full object-cover ${item.status === "RESERVED" ? "grayscale" : ""}`}
                 />
               </div>
@@ -440,8 +643,17 @@ export function WishlistView({
               </div>
             </article>
           );
-        })}
-      </div>
+          })}
+        </div>
+      )}
+      {visibleItems.length === 0 && (
+        <div className="mt-8">
+          <RetroInlineState
+            title="Пустой вишлист"
+            message="Здесь пока нет предметов. Добавьте первый подарок."
+          />
+        </div>
+      )}
 
       {isOwner && (
         <div className="mt-10 flex justify-center">
@@ -462,8 +674,7 @@ export function WishlistView({
       </div>
 
       {cancelModal && (
-        <div className="modal-backdrop" onClick={() => setCancelModal(null)}>
-          <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
+        <ModalDialog onClose={() => setCancelModal(null)}>
             <h2 className="display-font mb-4 text-center text-sm">Внимание</h2>
             {cancelModal.kind === "item" ? (
               <p className="mono-font mb-4 text-lg leading-relaxed">
@@ -497,8 +708,7 @@ export function WishlistView({
                 Назад
               </button>
             </div>
-          </div>
-        </div>
+        </ModalDialog>
       )}
 
       {selected && (
@@ -583,16 +793,18 @@ function MessageFields({
 }) {
   return (
     <div className="space-y-2">
-      <label className="pixel-font block text-xs">Сообщение (необязательно)</label>
+      <label htmlFor="item-message" className="pixel-font block text-xs">Сообщение (необязательно)</label>
       <textarea
+        id="item-message"
         className="input-field min-h-[4.5rem] resize-y"
         maxLength={200}
         placeholder="Поздравление или пожелание…"
         value={message}
         onChange={(e) => onMessage(e.target.value)}
       />
-      <label className="mono-font flex items-center gap-2 text-base">
+      <label htmlFor="item-message-anon" className="mono-font flex items-center gap-2 text-base">
         <input
+          id="item-message-anon"
           type="checkbox"
           className="h-4 w-4 accent-black"
           checked={anonymous}
@@ -675,18 +887,23 @@ function ItemModal({
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      {isGuestView && <PublicListBadge />}
-      <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
+    <ModalDialog onClose={onClose}>
+      <div className={`mb-4 flex items-start gap-2 ${isGuestView ? "" : "justify-end"}`}>
+        {isGuestView && (
+          <div className="min-w-0 flex-1">
+            <PublicListBadge variant="modal" />
+          </div>
+        )}
         <button
           type="button"
-          className="absolute top-3 right-4 text-xl"
+          className="hard-border flex h-8 w-8 shrink-0 items-center justify-center bg-white text-xl leading-none"
           onClick={onClose}
           aria-label="Закрыть"
         >
           ✕
         </button>
-        <h2 className="display-font mb-4 pr-8 text-center text-sm leading-relaxed md:text-base">
+      </div>
+        <h2 className="display-font mb-4 text-center text-sm leading-relaxed md:text-base">
           {item.name}
         </h2>
         {item.productUrl && (
@@ -710,7 +927,7 @@ function ItemModal({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={item.imageUrl || "/decor/cat-halftone-portrait.png"}
-                  alt=""
+                  alt={`Фото подарка: ${item.name}`}
                   className="h-full w-full object-cover"
                 />
               </div>
@@ -765,10 +982,14 @@ function ItemModal({
                 </label>
                 {fundingModePick === "FIXED_SPLIT" && (
                   <div>
-                    <label className="pixel-font mb-1 block text-xs">
+                    <label
+                      htmlFor="split-n"
+                      className="pixel-font mb-1 block text-xs"
+                    >
                       Число участников
                     </label>
                     <input
+                      id="split-n"
                       type="number"
                       min={2}
                       step={1}
@@ -857,7 +1078,7 @@ function ItemModal({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={item.imageUrl || "/decor/cat-halftone-portrait.png"}
-                  alt=""
+                  alt={`Фото подарка: ${item.name}`}
                   className="h-full w-full object-cover"
                 />
               </div>
@@ -950,7 +1171,7 @@ function ItemModal({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={item.imageUrl || "/decor/cat-halftone-portrait.png"}
-                  alt=""
+                  alt={`Фото подарка: ${item.name}`}
                   className="h-full w-full object-cover"
                 />
               </div>
@@ -1039,7 +1260,7 @@ function ItemModal({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={item.imageUrl || "/decor/cat-halftone-portrait.png"}
-                alt=""
+                alt={`Фото подарка: ${item.name}`}
                 className="h-full w-full object-cover grayscale"
               />
             </div>
@@ -1102,8 +1323,14 @@ function ItemModal({
               </p>
             ) : (
               <>
-                <p className="pixel-font text-center text-sm">Сколько скинуть?</p>
+                <label
+                  htmlFor="chip-amount"
+                  className="pixel-font block text-center text-sm"
+                >
+                  Сколько скинуть?
+                </label>
                 <input
+                  id="chip-amount"
                   className="input-field"
                   inputMode="decimal"
                   placeholder="Сумма ₽"
@@ -1141,8 +1368,7 @@ function ItemModal({
             </div>
           </form>
         )}
-      </div>
-    </div>
+    </ModalDialog>
   );
 }
 
@@ -1217,15 +1443,15 @@ function EditWishlistModal({
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
+    <ModalDialog onClose={onClose}>
         <h2 className="display-font mb-4 text-center text-sm md:text-base">
           Редактировать вишлист
         </h2>
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label className="pixel-font mb-2 block text-xs">Название</label>
+            <label htmlFor="wishlist-edit-title" className="pixel-font mb-2 block text-xs">Название</label>
             <input
+              id="wishlist-edit-title"
               name="title"
               required
               className="input-field"
@@ -1233,16 +1459,18 @@ function EditWishlistModal({
             />
           </div>
           <div>
-            <label className="pixel-font mb-2 block text-xs">Дедлайн (необязательно)</label>
+            <label htmlFor="wishlist-edit-deadline" className="pixel-font mb-2 block text-xs">Дедлайн (необязательно)</label>
             <input
+              id="wishlist-edit-deadline"
               name="deadline"
               type="date"
               className="input-field"
               defaultValue={wishlist.deadline ?? ""}
             />
           </div>
-          <label className="mono-font flex items-center gap-2 text-lg">
+          <label htmlFor="wishlist-edit-public" className="mono-font flex items-center gap-2 text-lg">
             <input
+              id="wishlist-edit-public"
               type="checkbox"
               name="isPublic"
               className="h-4 w-4 accent-black"
@@ -1265,8 +1493,7 @@ function EditWishlistModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </ModalDialog>
   );
 }
 
@@ -1383,8 +1610,7 @@ function ItemFormModal({
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-panel relative overflow-visible" onClick={(e) => e.stopPropagation()}>
+    <ModalDialog onClose={onClose} panelClassName="modal-panel relative overflow-visible">
         {!editing && (
           <>
             <Image
@@ -1431,8 +1657,9 @@ function ItemFormModal({
         </h2>
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label className="pixel-font mb-2 block text-xs">Название предмета</label>
+            <label htmlFor="item-name" className="pixel-font mb-2 block text-xs">Название предмета</label>
             <input
+              id="item-name"
               name="name"
               className="input-field"
               value={name}
@@ -1441,8 +1668,9 @@ function ItemFormModal({
             />
           </div>
           <div>
-            <label className="pixel-font mb-2 block text-xs">Цена</label>
+            <label htmlFor="item-price" className="pixel-font mb-2 block text-xs">Цена</label>
             <input
+              id="item-price"
               name="price"
               type="number"
               min="0"
@@ -1454,8 +1682,9 @@ function ItemFormModal({
             />
           </div>
           <div>
-            <label className="pixel-font mb-2 block text-xs">Ссылка на товар</label>
+            <label htmlFor="item-product-url" className="pixel-font mb-2 block text-xs">Ссылка на товар</label>
             <input
+              id="item-product-url"
               name="productUrl"
               className="input-field"
               placeholder="https://..."
@@ -1484,7 +1713,7 @@ function ItemFormModal({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={preview}
-                alt=""
+                  alt="Превью загруженного фото"
                 className="hard-border h-16 w-16 object-cover"
                 referrerPolicy="no-referrer"
               />
@@ -1504,8 +1733,7 @@ function ItemFormModal({
             Назад
           </button>
         </form>
-      </div>
-    </div>
+    </ModalDialog>
   );
 }
 

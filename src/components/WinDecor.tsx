@@ -145,10 +145,14 @@ export function WinErrorStack({ className = "" }: { className?: string }) {
   );
 }
 
-export function PublicListBadge() {
+export function PublicListBadge({ variant = "banner" }: { variant?: "banner" | "modal" }) {
   return (
-    <div className="public-badge">
-      <span className="inline-flex h-5 w-5 items-center justify-center bg-black text-[10px] text-white">
+    <div
+      className={`public-badge public-badge--${variant}`}
+      role="status"
+      aria-live="polite"
+    >
+      <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center bg-black text-[10px] text-white">
         !
       </span>
       <span>Вы смотрите публичный список</span>

@@ -1,8 +1,9 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useNetwork } from "@/components/NetworkProvider";
+import { RetroInlineState } from "@/components/RetroState";
 
 type Person = {
   id: string;
@@ -33,9 +34,26 @@ export function FriendRequestsPanel({
   const router = useRouter();
   const { online, requireOnline } = useNetwork();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [localIncoming, setLocalIncoming] = useState(incoming);
+  const [localOutgoing, setLocalOutgoing] = useState(outgoing);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setLocalIncoming(incoming);
+      setLocalOutgoing(outgoing);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [incoming, outgoing]);
 
   async function act(id: string, action: "accept" | "decline" | "cancel") {
     if (!requireOnline()) return;
+    const prevIncoming = localIncoming;
+    const prevOutgoing = localOutgoing;
+    if (action === "cancel") {
+      setLocalOutgoing((list) => list.filter((r) => r.id !== id));
+    } else {
+      setLocalIncoming((list) => list.filter((r) => r.id !== id));
+    }
     setBusyId(id);
     const res = await fetch(`/api/friends/${id}`, {
       method: "PATCH",
@@ -45,21 +63,30 @@ export function FriendRequestsPanel({
     setBusyId(null);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
+      setLocalIncoming(prevIncoming);
+      setLocalOutgoing(prevOutgoing);
       alert(data.error ?? "Ошибка");
       return;
     }
     router.refresh();
   }
 
-  if (incoming.length === 0 && outgoing.length === 0) return null;
+  if (localIncoming.length === 0 && localOutgoing.length === 0) {
+    return (
+      <RetroInlineState
+        title="Заявок пока нет"
+        message="Когда кто-то отправит запрос в друзья, он появится здесь."
+      />
+    );
+  }
 
   return (
     <div className="mb-8 space-y-6">
-      {incoming.length > 0 && (
+      {localIncoming.length > 0 && (
         <section>
           <h2 className="pixel-font mb-3 text-sm">Входящие заявки</h2>
           <ul className="space-y-3">
-            {incoming.map((r) => (
+            {localIncoming.map((r) => (
               <li
                 key={r.id}
                 className="hard-border flex flex-wrap items-center justify-between gap-3 bg-white p-3"
@@ -68,7 +95,7 @@ export function FriendRequestsPanel({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={r.from.avatarUrl || "/decor/avatar-halftone-cat.png"}
-                    alt=""
+                    alt={`Аватар пользователя ${r.from.displayName}`}
                     width={40}
                     height={40}
                     className="h-10 w-10 shrink-0 rounded-full border-2 border-black object-cover"
@@ -104,11 +131,11 @@ export function FriendRequestsPanel({
         </section>
       )}
 
-      {outgoing.length > 0 && (
+      {localOutgoing.length > 0 && (
         <section>
           <h2 className="pixel-font mb-3 text-sm">Исходящие заявки</h2>
           <ul className="space-y-3">
-            {outgoing.map((r) => (
+            {localOutgoing.map((r) => (
               <li
                 key={r.id}
                 className="hard-border flex flex-wrap items-center justify-between gap-3 bg-white p-3"
@@ -117,7 +144,7 @@ export function FriendRequestsPanel({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={r.to.avatarUrl || "/decor/avatar-halftone-cat.png"}
-                    alt=""
+                    alt={`Аватар пользователя ${r.to.displayName}`}
                     width={40}
                     height={40}
                     className="h-10 w-10 shrink-0 rounded-full border-2 border-black object-cover"

@@ -13,11 +13,13 @@ export function AccountForm({
   handle,
   email,
   avatarUrl,
+  emailNotificationsEnabled,
 }: {
   displayName: string;
   handle: string;
   email: string;
   avatarUrl: string | null;
+  emailNotificationsEnabled: boolean;
 }) {
   const router = useRouter();
   const { online, requireOnline } = useNetwork();
@@ -26,6 +28,7 @@ export function AccountForm({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [emailNotif, setEmailNotif] = useState(emailNotificationsEnabled);
 
   useEffect(() => {
     return () => {
@@ -93,6 +96,7 @@ export function AccountForm({
         body: JSON.stringify({
           displayName: fd.get("displayName"),
           ...(nextAvatarUrl ? { avatarUrl: nextAvatarUrl } : {}),
+          emailNotificationsEnabled: emailNotif,
         }),
       });
       const data = await res.json();
@@ -115,7 +119,7 @@ export function AccountForm({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={preview || "/decor/avatar-halftone-cat.png"}
-          alt=""
+          alt={`Аватар ${displayName}`}
           width={64}
           height={64}
           className="h-16 w-16 rounded-full border-2 border-black object-cover"
@@ -141,8 +145,11 @@ export function AccountForm({
         </div>
       </div>
       <div>
-        <label className="pixel-font mb-2 block text-xs">Имя</label>
+        <label htmlFor="account-display-name" className="pixel-font mb-2 block text-xs">
+          Имя
+        </label>
         <input
+          id="account-display-name"
           name="displayName"
           defaultValue={displayName}
           required
@@ -150,12 +157,47 @@ export function AccountForm({
         />
       </div>
       <div>
-        <label className="pixel-font mb-2 block text-xs">Ник (только чтение)</label>
-        <input value={`@${handle}`} readOnly className="input-field bg-[#f3f3f3]" />
+        <label
+          htmlFor="account-handle"
+          className="pixel-font mb-2 block text-xs"
+        >
+          Ник (только чтение)
+        </label>
+        <input
+          id="account-handle"
+          value={`@${handle}`}
+          readOnly
+          className="input-field bg-[#f3f3f3]"
+        />
       </div>
       <div>
-        <label className="pixel-font mb-2 block text-xs">Email</label>
-        <input value={email} readOnly className="input-field bg-[#f3f3f3]" />
+        <label htmlFor="account-email" className="pixel-font mb-2 block text-xs">
+          Email
+        </label>
+        <input
+          id="account-email"
+          value={email}
+          readOnly
+          className="input-field bg-[#f3f3f3]"
+        />
+      </div>
+      <div>
+        <label
+          htmlFor="account-email-notif"
+          className="mono-font flex cursor-pointer items-center gap-2 text-base"
+        >
+          <input
+            id="account-email-notif"
+            type="checkbox"
+            className="h-4 w-4 accent-black"
+            checked={emailNotif}
+            onChange={(e) => setEmailNotif(e.target.checked)}
+          />
+          Получать уведомления на email
+        </label>
+        <p className="mono-font mt-1 text-sm text-[#888]">
+          Бронирования, взносы, завершение сборов, заявки в друзья
+        </p>
       </div>
       {error && <p className="mono-font text-red-600">{error}</p>}
       {message && <p className="mono-font text-green-700">{message}</p>}

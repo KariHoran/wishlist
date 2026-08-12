@@ -6,6 +6,7 @@ import { Navbar } from "@/components/Navbar";
 import { ProgressBar } from "@/components/ProgressBar";
 import { PublicListBadge } from "@/components/WinDecor";
 import { wishlistProgress } from "@/lib/money";
+import { RetroInlineState } from "@/components/RetroState";
 
 type Props = { params: Promise<{ handle: string }> };
 
@@ -32,7 +33,6 @@ export default async function PublicFriendPage({ params }: Props) {
 
   return (
     <div className="page-frame grid-bg relative">
-      <PublicListBadge />
       {viewer && <Navbar avatarUrl={viewer.avatarUrl} displayName={viewer.displayName} />}
       {!viewer && (
         <header className="px-4 py-3 md:px-8">
@@ -44,13 +44,14 @@ export default async function PublicFriendPage({ params }: Props) {
           </Link>
         </header>
       )}
+      <PublicListBadge />
 
       <main className="mx-auto max-w-6xl px-4 py-6 md:px-8">
         <div className="mb-6 flex items-start gap-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={profile.avatarUrl || "/decor/avatar-halftone-cat.png"}
-            alt=""
+            alt={`Аватар пользователя ${profile.displayName}`}
             width={56}
             height={56}
             className="h-14 w-14 rounded-full border-2 border-black object-cover"
@@ -86,7 +87,10 @@ export default async function PublicFriendPage({ params }: Props) {
           })}
         </div>
         {profile.wishlists.length === 0 && (
-          <p className="mono-font text-xl text-[#666]">Нет публичных вишлистов</p>
+          <RetroInlineState
+            title="Нет публичных вишлистов"
+            message="Когда пользователь откроет списки для друзей, они появятся здесь."
+          />
         )}
       </main>
     </div>

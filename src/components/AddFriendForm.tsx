@@ -14,6 +14,7 @@ export function AddFriendForm() {
     name: string;
   } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [optimisticOutgoing, setOptimisticOutgoing] = useState<string[]>([]);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -24,6 +25,10 @@ export function AddFriendForm() {
     setBusy(true);
     const fd = new FormData(e.currentTarget);
     const handle = String(fd.get("handle") ?? "").replace(/^@/, "").trim();
+    const optimisticHandle = handle.toLowerCase();
+    setOptimisticOutgoing((list) =>
+      list.includes(optimisticHandle) ? list : [optimisticHandle, ...list],
+    );
     const res = await fetch("/api/friends", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -32,6 +37,7 @@ export function AddFriendForm() {
     const data = await res.json();
     setBusy(false);
     if (res.status === 409 && data.needsAccept && data.requestId) {
+      setOptimisticOutgoing((list) => list.filter((h) => h !== optimisticHandle));
       setPendingAccept({
         requestId: data.requestId,
         name: data.from?.displayName ?? handle,
@@ -40,6 +46,7 @@ export function AddFriendForm() {
       return;
     }
     if (!res.ok) {
+      setOptimisticOutgoing((list) => list.filter((h) => h !== optimisticHandle));
       setError(data.error ?? "Ошибка");
       return;
     }
@@ -75,8 +82,19 @@ export function AddFriendForm() {
       className="hard-border flex flex-col gap-3 bg-white p-4 sm:flex-row sm:flex-wrap sm:items-end"
     >
       <div className="min-w-0 flex-1">
-        <label className="pixel-font mb-2 block text-xs">Ник друга</label>
-        <input name="handle" required placeholder="@nickname" className="input-field" />
+        <label
+          htmlFor="friend-handle"
+          className="pixel-font mb-2 block text-xs"
+        >
+          Ник друга
+        </label>
+        <input
+          id="friend-handle"
+          name="handle"
+          required
+          placeholder="@nickname"
+          className="input-field"
+        />
       </div>
       <button
         type="submit"
@@ -99,6 +117,12 @@ export function AddFriendForm() {
       )}
       {error && <p className="mono-font w-full text-red-600 sm:order-last">{error}</p>}
       {ok && <p className="mono-font w-full text-green-700 sm:order-last">{ok}</p>}
+      {optimisticOutgoing.length > 0 && (
+        <p className="mono-font w-full text-[#666] sm:order-last">
+          Исходящие (оптимистично):{" "}
+          {optimisticOutgoing.map((h) => `@${h}`).join(", ")}
+        </p>
+      )}
     </form>
   );
 }

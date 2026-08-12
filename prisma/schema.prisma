@@ -8,13 +8,14 @@ datasource db {
 }
 
 model User {
-  id               String          @id @default(cuid())
-  email            String          @unique
-  handle           String          @unique
-  displayName      String
-  passwordHash     String
-  avatarUrl        String?
-  createdAt        DateTime        @default(now())
+  id                       String          @id @default(cuid())
+  email                    String          @unique
+  handle                   String          @unique
+  displayName              String
+  passwordHash             String
+  avatarUrl                String?
+  emailNotificationsEnabled Boolean        @default(true)
+  createdAt                DateTime        @default(now())
   wishlists        Wishlist[]
   friendsA         Friendship[]    @relation("UserA")
   friendsB         Friendship[]    @relation("UserB")
@@ -56,17 +57,19 @@ model FriendRequest {
 }
 
 model Wishlist {
-  id        String    @id @default(cuid())
-  owner     User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  ownerId   String
-  title     String
-  emoji     String?   @default("💖")
-  isPublic  Boolean   @default(false)
-  deadline  DateTime?
-  createdAt DateTime  @default(now())
-  items     Item[]
+  id         String    @id @default(cuid())
+  owner      User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId    String
+  title      String
+  emoji      String?   @default("💖")
+  isPublic   Boolean   @default(false)
+  deadline   DateTime?
+  shareToken String    @unique @default(cuid())
+  createdAt  DateTime  @default(now())
+  items      Item[]
 
   @@index([ownerId])
+  @@index([shareToken])
 }
 
 model Item {

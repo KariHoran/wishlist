@@ -22,6 +22,7 @@ export default async function AccountPage() {
           handle={user.handle}
           email={user.email}
           avatarUrl={user.avatarUrl}
+          emailNotificationsEnabled={user.emailNotificationsEnabled}
         />
         <Link href="/account/refunds" className="btn-secondary mt-6 block w-full text-center">
           Возвраты

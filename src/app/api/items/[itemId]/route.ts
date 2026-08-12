@@ -21,6 +21,13 @@ import {
   statusAfterStopFunding,
 } from "@/lib/item-status";
 import { reserveItemAtomic } from "@/lib/item-reserve";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import {
+  emailItemReserved,
+  emailItemContributed,
+  emailGoalReached,
+  getUserEmailIfEnabled,
+} from "@/lib/email";
 
 type Ctx = { params: Promise<{ itemId: string }> };
 
@@ -114,6 +121,18 @@ export async function PATCH(req: Request, ctx: Ctx) {
   }
   const body = await req.json();
   const action = String(body.action ?? "");
+  if (action === "reserve" || action === "contribute") {
+    const limit = await enforceRateLimit(
+      RATE_LIMITS.reserveOrContribute,
+      session.user.id,
+    );
+    if (!limit.ok) {
+      return NextResponse.json(limit.body, {
+        status: limit.status,
+        headers: { "Retry-After": String(limit.retryAfterSeconds) },
+      });
+    }
+  }
 
   const item = await prisma.item.findUnique({
     where: { id: itemId },
@@ -273,6 +292,18 @@ export async function PATCH(req: Request, ctx: Ctx) {
         anonymous,
       });
 
+      // Fire-and-forget email to wishlist owner (no await — never blocks reserve)
+      void getUserEmailIfEnabled(item.wishlist.ownerId).then((email) => {
+        if (email) {
+          emailItemReserved({
+            to: email,
+            itemName: item.name,
+            wishlistTitle: item.wishlist.title,
+            wishlistId: item.wishlist.id,
+          });
+        }
+      });
+
       await publishWishlistUpdate(item.wishlistId);
       return NextResponse.json(updated);
     }
@@ -396,6 +427,19 @@ export async function PATCH(req: Request, ctx: Ctx) {
         anonymous,
       });
 
+      // Fire-and-forget email to owner about the contribution
+      void getUserEmailIfEnabled(item.wishlist.ownerId).then((email) => {
+        if (email) {
+          emailItemContributed({
+            to: email,
+            itemName: item.name,
+            wishlistTitle: item.wishlist.title,
+            wishlistId: item.wishlist.id,
+            amount,
+          });
+        }
+      });
+
       if (goalReached) {
         const notifyIds = new Set([
           ...item.contributions.map((c) => c.userId),
@@ -409,6 +453,17 @@ export async function PATCH(req: Request, ctx: Ctx) {
             wishlistId: item.wishlist.id,
             wishlistTitle: item.wishlist.title,
             amount: Number(item.price),
+          });
+          // Fire-and-forget email to each participant about goal reached
+          void getUserEmailIfEnabled(uid).then((email) => {
+            if (email) {
+              emailGoalReached({
+                to: email,
+                itemName: item.name,
+                wishlistTitle: item.wishlist.title,
+                wishlistId: item.wishlist.id,
+              });
+            }
           });
         }
       }

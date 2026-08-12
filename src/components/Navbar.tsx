@@ -60,7 +60,7 @@ export function Navbar({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={avatarUrl || "/decor/avatar-halftone-cat.png"}
-              alt=""
+              alt={`Аватар пользователя ${displayName ?? "аккаунт"}`}
               width={40}
               height={40}
               className="h-full w-full object-cover"
@@ -69,7 +69,7 @@ export function Navbar({
         </div>
       </div>
       {/* Separate divider block with vertical spacing so wrapped titles don't overlap */}
-      <div className="mx-4 mt-1 mb-4 border-b-2 border-black md:mx-8" />
+      <div className="mx-4 mt-1 border-b-2 border-black md:mx-8" />
     </header>
   );
 }

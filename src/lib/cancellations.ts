@@ -1,6 +1,7 @@
 import { Item, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { publishUserNotification, publishWishlistUpdate } from "@/lib/realtime";
+import { emailCancelledRefundDue, getUserEmailIfEnabled } from "@/lib/email";
 
 type ItemWithContributions = Item & {
   contributions: { id: string; userId: string; amount: Prisma.Decimal }[];
@@ -89,6 +90,17 @@ export async function cancelItemWithRefunds(item: ItemWithContributions) {
   await publishWishlistUpdate(item.wishlistId);
   for (const c of item.contributions) {
     await publishUserNotification(c.userId);
+    // Fire-and-forget email about refund due
+    void getUserEmailIfEnabled(c.userId).then((email) => {
+      if (email) {
+        emailCancelledRefundDue({
+          to: email,
+          itemName: item.name,
+          wishlistTitle: item.wishlist.title,
+          amount: Number(c.amount),
+        });
+      }
+    });
   }
 
   return { cancelled: true as const };

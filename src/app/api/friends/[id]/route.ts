@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notifications";
+import { emailFriendRequestAccepted, getUserEmailIfEnabled } from "@/lib/email";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -60,6 +61,19 @@ export async function PATCH(req: Request, { params }: Props) {
       actorHandle: meUser?.handle,
       requestId: request.id,
     });
+
+    // Fire-and-forget email to the person whose request was accepted
+    if (meUser) {
+      void getUserEmailIfEnabled(request.fromId).then((email) => {
+        if (email) {
+          emailFriendRequestAccepted({
+            to: email,
+            acceptorName: meUser.displayName,
+            acceptorHandle: meUser.handle,
+          });
+        }
+      });
+    }
 
     return NextResponse.json({ ok: true, status: "ACCEPTED" });
   }

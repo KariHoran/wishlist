@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
+import { RetroInlineState, RetroStatePage } from "@/components/RetroState";
 
 type NotificationRow = {
   id: string;
@@ -16,12 +17,18 @@ type NotificationRow = {
 export default function NotificationsPage() {
   const [items, setItems] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/notifications");
-    if (!res.ok) return;
+    if (!res.ok) {
+      setLoadError("Не удалось загрузить уведомления");
+      setLoading(false);
+      return;
+    }
     const data = await res.json();
     setItems(data.notifications ?? []);
+    setLoadError(null);
     setLoading(false);
     await fetch("/api/notifications", {
       method: "PATCH",
@@ -47,6 +54,18 @@ export default function NotificationsPage() {
     };
   }, [load]);
 
+  if (loadError) {
+    return (
+      <RetroStatePage
+        title="500"
+        variant="error"
+        message={loadError}
+        actionLabel="Попробовать снова"
+        onAction={() => window.location.reload()}
+      />
+    );
+  }
+
   return (
     <div className="page-frame grid-bg">
       <Navbar />
@@ -60,7 +79,10 @@ export default function NotificationsPage() {
         <h1 className="display-font mt-4 mb-6 text-2xl">Уведомления</h1>
         {loading && <p className="mono-font text-lg">...</p>}
         {!loading && items.length === 0 && (
-          <p className="mono-font text-xl text-[#666]">Пока пусто</p>
+          <RetroInlineState
+            title="Уведомлений пока нет"
+            message="Когда появятся новые события, они отобразятся здесь."
+          />
         )}
         <ul className="space-y-3">
           {items.map((n) => (
