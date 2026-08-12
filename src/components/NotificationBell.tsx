@@ -92,10 +92,10 @@ export function NotificationBell() {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/decor/envelope-pink.png"
+          src="/decor/envelope-nav.png"
           alt=""
           width={24}
-          height={28}
+          height={24}
           className="h-6 w-6 object-contain"
           draggable={false}
         />
