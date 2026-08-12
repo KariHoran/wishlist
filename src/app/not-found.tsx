@@ -29,10 +29,10 @@ export default function NotFound() {
       </div>
 
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/decor/paw.svg" alt="" className="absolute top-8 right-40 z-10 hidden w-12 md:block" />
-      <WinErrorStack className="absolute top-10 right-8 z-10 hidden md:block" />
+      <img src="/decor/paw.svg" alt="" className="pointer-events-none absolute top-8 right-40 z-0 hidden w-12 md:block" />
+      <WinErrorStack className="pointer-events-none absolute top-10 right-8 z-0 hidden md:block" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/decor/pixel-bunny.svg" alt="" className="absolute top-44 right-10 z-10 hidden w-12 brightness-0 invert md:block" />
+      <img src="/decor/pixel-bunny.svg" alt="" className="pointer-events-none absolute top-44 right-10 z-0 hidden w-12 brightness-0 invert md:block" />
 
       <main className="relative z-20 flex min-h-[calc(100dvh-10px)] flex-col items-center justify-center px-4 text-center">
         <Logo size="md" href="/" light />

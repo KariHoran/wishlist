@@ -278,8 +278,11 @@ textarea {
   pointer-events: none;
 }
 
-body.is-offline {
-  padding-top: 48px;
+.page-decor {
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+  user-select: none;
 }
 
 .network-toast {

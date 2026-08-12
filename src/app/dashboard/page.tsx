@@ -33,23 +33,24 @@ export default async function DashboardPage() {
     totalItems === 0 ? 0 : Math.round((collectedItems / totalItems) * 100);
 
   return (
-    <div className="page-frame grid-bg relative">
+    <div className="page-frame grid-bg relative isolate">
+      {/* Decor behind content (main has z-10) */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/decor/paw.svg" alt="" className="pointer-events-none absolute top-24 left-4 z-0 hidden w-12 md:block" />
+      <img src="/decor/paw.svg" alt="" className="page-decor top-24 left-2 hidden w-11 opacity-80 lg:block" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/decor/pixel-star.svg" alt="" className="pointer-events-none absolute top-28 right-10 z-0 hidden w-12 md:block" />
+      <img src="/decor/pixel-star.svg" alt="" className="page-decor top-28 right-6 hidden w-10 opacity-70 lg:block" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/decor/halftone-cat.svg" alt="" className="pointer-events-none absolute top-36 left-1/2 z-0 hidden w-40 -translate-x-1/2 opacity-40 md:block" />
+      <img src="/decor/halftone-cat.svg" alt="" className="page-decor top-40 left-1/2 hidden w-36 -translate-x-1/2 opacity-25 xl:block" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/decor/notepad.svg" alt="" className="pointer-events-none absolute top-[420px] left-6 z-0 hidden w-12 md:block" />
-      <span className="pointer-events-none absolute bottom-24 left-10 z-0 hidden rotate-[-12deg] font-serif text-3xl text-[#c9a0ff] md:block">
+      <img src="/decor/notepad.svg" alt="" className="page-decor bottom-40 left-3 hidden w-11 opacity-70 lg:block" />
+      <span className="page-decor bottom-24 left-8 hidden rotate-[-12deg] font-serif text-3xl text-[#c9a0ff] opacity-80 xl:block">
         cat
       </span>
-      <span className="pointer-events-none absolute top-[55%] right-16 z-0 hidden rotate-12 font-serif text-2xl text-[#1e3a8a] md:block">
+      <span className="page-decor top-[58%] right-10 hidden rotate-12 font-serif text-2xl text-[#1e3a8a] opacity-80 xl:block">
         all day
       </span>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/decor/halftone-cat.svg" alt="" className="pointer-events-none absolute bottom-8 left-1/2 z-0 hidden w-16 -translate-x-1/2 opacity-70 md:block" />
+      <img src="/decor/halftone-cat.svg" alt="" className="page-decor bottom-6 left-1/2 hidden w-14 -translate-x-1/2 opacity-40 xl:block" />
 
       <Navbar avatarUrl={user.avatarUrl} displayName={user.displayName} />
 

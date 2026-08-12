@@ -141,19 +141,18 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="page-frame grid-bg relative overflow-hidden">
+    <div className="page-frame grid-bg relative isolate overflow-hidden">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/decor/halftone-cat.svg"
         alt=""
         loading="lazy"
         decoding="async"
-        className="pointer-events-none absolute top-10 left-6 hidden w-28 md:block"
+        className="page-decor top-10 left-4 hidden w-24 opacity-80 lg:block"
       />
-      {/* CSS bg avoids "preloaded but not used" on viewports where decor is hidden */}
       <div
         aria-hidden
-        className="pointer-events-none absolute top-1/2 left-8 hidden h-14 w-14 -translate-y-1/2 bg-[url('/decor/pixel-bunny.svg')] bg-contain bg-center bg-no-repeat md:block"
+        className="page-decor top-1/2 left-6 hidden h-14 w-14 -translate-y-1/2 bg-[url('/decor/pixel-bunny.svg')] bg-contain bg-center bg-no-repeat opacity-80 lg:block"
       />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -161,9 +160,9 @@ export default function LoginPage() {
         alt=""
         loading="lazy"
         decoding="async"
-        className="pointer-events-none absolute bottom-10 left-10 hidden w-20 md:block"
+        className="page-decor bottom-10 left-8 hidden w-16 opacity-80 lg:block"
       />
-      <div className="pointer-events-none absolute top-8 right-6 z-10 hidden md:block">
+      <div className="page-decor top-8 right-4 z-0 hidden opacity-90 lg:block">
         <WinWelcome />
         <WinSetup className="mt-[-12px] ml-8 rotate-2" />
       </div>
@@ -173,7 +172,7 @@ export default function LoginPage() {
         alt=""
         loading="lazy"
         decoding="async"
-        className="pointer-events-none absolute right-8 bottom-12 hidden w-24 md:block"
+        className="page-decor right-6 bottom-10 hidden w-20 opacity-80 lg:block"
       />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -181,7 +180,7 @@ export default function LoginPage() {
         alt=""
         loading="lazy"
         decoding="async"
-        className="pointer-events-none absolute top-8 left-[42%] hidden w-10 md:block"
+        className="page-decor top-8 left-[8%] hidden w-9 opacity-70 xl:block"
       />
 
       <main className="relative z-10 mx-auto flex min-h-[calc(100dvh-10px)] w-full max-w-md flex-col items-center justify-center px-4 py-10">

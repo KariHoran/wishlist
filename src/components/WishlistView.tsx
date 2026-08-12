@@ -247,35 +247,37 @@ export function WishlistView({
   }
 
   return (
-    <div className="relative">
+    <div className="relative isolate">
       {isGuestView && <PublicListBadge />}
 
+      {/* Decor stays in page gutters / behind content — never over text */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/decor/envelope.svg"
         alt=""
-        className="pointer-events-none absolute top-28 left-2 z-0 hidden w-14 md:block"
+        className="page-decor top-[72%] left-0 hidden w-12 opacity-70 lg:block"
       />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/decor/notepad.svg"
         alt=""
-        className="pointer-events-none absolute right-4 bottom-24 z-0 hidden w-12 md:block"
+        className="page-decor right-0 bottom-16 hidden w-11 opacity-70 lg:block"
       />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/decor/pixel-star.svg"
         alt=""
-        className="pointer-events-none absolute bottom-40 left-1/2 z-0 hidden w-8 -translate-x-1/2 md:block"
+        className="page-decor right-2 top-8 hidden w-8 opacity-60 lg:block"
       />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/decor/halftone-cat.svg"
         alt=""
-        className="pointer-events-none absolute bottom-8 left-[55%] z-0 hidden w-14 md:block"
+        className="page-decor bottom-4 left-[62%] hidden w-12 -translate-x-1/2 opacity-50 xl:block"
       />
 
-      <div className="relative z-10 mb-4 flex flex-wrap items-start justify-between gap-3">
+      <div className="relative z-10">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <Link
           href="/dashboard"
           className="pixel-font text-xs underline underline-offset-4 leading-normal md:text-sm"
@@ -422,6 +424,7 @@ export function WishlistView({
           </button>
         </div>
       )}
+      </div>
 
       {cancelModal && (
         <div className="modal-backdrop" onClick={() => setCancelModal(null)}>
@@ -642,13 +645,14 @@ function ItemModal({
               </div>
             </div>
 
-            <div className="relative space-y-2 pl-0 sm:pl-2">
+              <div className="relative space-y-2 pl-0 sm:pl-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/decor/halftone-cat.svg"
                 alt=""
-                className="pointer-events-none absolute -left-2 top-0 hidden w-16 opacity-40 sm:block"
+                className="page-decor -left-10 top-2 hidden w-14 opacity-30 xl:block"
               />
+              <div className="relative z-10 space-y-2">
               {(item.contributions ?? []).map((c, idx) => (
                 <div key={c.id} className="leader-row relative z-10">
                   <span>
@@ -662,6 +666,7 @@ function ItemModal({
               {(item.contributions ?? []).length === 0 && (
                 <p className="mono-font text-lg text-[#777]">Пока никто не скинулся</p>
               )}
+              </div>
             </div>
 
             <div className="flex gap-3">

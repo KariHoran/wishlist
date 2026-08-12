@@ -68,15 +68,15 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="page-frame grid-bg relative overflow-hidden">
-      {/* decor */}
+    <div className="page-frame grid-bg relative isolate overflow-hidden">
+      {/* decor — behind form */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/decor/notepad.svg"
         alt=""
         loading="lazy"
         decoding="async"
-        className="pointer-events-none absolute top-8 left-6 hidden w-14 opacity-90 md:block"
+        className="page-decor top-8 left-4 hidden w-12 opacity-80 lg:block"
       />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -84,10 +84,10 @@ export default function RegisterPage() {
         alt=""
         loading="lazy"
         decoding="async"
-        className="pointer-events-none absolute top-1/3 left-4 hidden w-28 opacity-90 md:block lg:left-16"
+        className="page-decor top-1/3 left-3 hidden w-24 opacity-70 lg:block"
       />
-      <div className="pointer-events-none absolute top-6 right-4 z-10 hidden md:block lg:right-16">
-        <WinWelcome className="relative z-20" />
+      <div className="page-decor top-6 right-3 hidden opacity-90 lg:block">
+        <WinWelcome />
         <WinSetup className="absolute top-16 -right-6 rotate-[-4deg]" />
       </div>
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -96,11 +96,11 @@ export default function RegisterPage() {
         alt=""
         loading="lazy"
         decoding="async"
-        className="pointer-events-none absolute right-10 bottom-16 hidden w-20 md:block"
+        className="page-decor right-8 bottom-14 hidden w-16 opacity-80 lg:block"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute right-6 bottom-6 hidden h-14 w-14 bg-[url('/decor/pixel-bunny.svg')] bg-contain bg-center bg-no-repeat md:block"
+        className="page-decor right-4 bottom-4 hidden h-12 w-12 bg-[url('/decor/pixel-bunny.svg')] bg-contain bg-center bg-no-repeat opacity-80 lg:block"
       />
 
       <main className="relative z-10 mx-auto flex min-h-[calc(100dvh-10px)] w-full max-w-md flex-col items-center justify-center px-4 py-10">
