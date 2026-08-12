@@ -35,12 +35,12 @@ export default async function DashboardPage() {
 
   return (
     <div className="page-frame grid-bg relative isolate">
-      {/* Decor behind content — small stickers in gutters, never over stats/cards */}
+      {/* Small sticker above stats row — must not intersect card boxes */}
       <DecorImage
         src="/decor/cat-halftone-face.png"
-        width={120}
-        height={130}
-        className="top-[7.5rem] left-1/2 hidden w-24 -translate-x-1/2 opacity-80 xl:block"
+        width={88}
+        height={96}
+        className="top-[6.75rem] left-1/2 hidden w-[4.5rem] -translate-x-1/2 opacity-85 xl:block"
       />
       <DecorImage
         src="/decor/paw-print.png"
@@ -50,15 +50,15 @@ export default async function DashboardPage() {
       />
       <DecorImage
         src="/decor/star-pixel-pastel.png"
-        width={72}
-        height={68}
-        className="top-36 right-4 hidden w-14 opacity-95 lg:block"
+        width={56}
+        height={53}
+        className="top-28 right-8 hidden w-12 opacity-95 lg:block"
       />
       <DecorImage
         src="/decor/windows-explorer-window.png"
-        width={140}
-        height={129}
-        className="right-0 bottom-8 hidden w-28 translate-x-1/4 opacity-90 xl:block"
+        width={120}
+        height={111}
+        className="right-0 bottom-6 hidden w-24 translate-x-[35%] opacity-90 xl:block"
       />
       <DecorImage
         src="/decor/cat-text-lettering.png"
@@ -70,13 +70,13 @@ export default async function DashboardPage() {
         src="/decor/all-day-text.png"
         width={100}
         height={100}
-        className="top-[58%] right-6 hidden w-20 rotate-12 opacity-90 xl:block"
+        className="top-[62%] right-4 hidden w-16 rotate-12 opacity-90 xl:block"
       />
       <DecorImage
         src="/decor/cat-halftone-sitting.png"
         width={100}
         height={150}
-        className="bottom-4 left-1/2 hidden w-16 -translate-x-1/2 opacity-95 xl:block"
+        className="bottom-4 left-1/2 hidden w-14 -translate-x-1/2 opacity-95 xl:block"
       />
 
       <Navbar avatarUrl={user.avatarUrl} displayName={user.displayName} />
