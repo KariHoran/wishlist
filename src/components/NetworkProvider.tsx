@@ -5,9 +5,40 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+
+/** Browser-only online status. Initial true avoids SSR/client hydration mismatch;
+ * real navigator.onLine is applied in useEffect after mount. */
+export function useOnlineStatus() {
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    setIsOnline(navigator.onLine);
+
+    const goOnline = () => setIsOnline(true);
+    const goOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+
+    // DevTools → Network → Offline sometimes updates navigator.onLine
+    // without a reliable event in all embeds — poll as a fallback.
+    const poll = window.setInterval(() => {
+      setIsOnline(navigator.onLine);
+    }, 500);
+
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+      window.clearInterval(poll);
+    };
+  }, []);
+
+  return isOnline;
+}
 
 type NetworkContextValue = {
   online: boolean;
@@ -25,9 +56,8 @@ export function useNetwork() {
   return useContext(NetworkContext);
 }
 
-export function OfflineBanner() {
-  const { online } = useNetwork();
-  if (online) return null;
+export function OfflineBanner({ visible }: { visible: boolean }) {
+  if (!visible) return null;
   return (
     <div className="offline-banner" role="status" aria-live="assertive">
       <span aria-hidden>⚠</span>
@@ -39,7 +69,8 @@ export function OfflineBanner() {
 }
 
 export function NetworkProvider({ children }: { children: ReactNode }) {
-  const [online, setOnline] = useState(true);
+  const online = useOnlineStatus();
+  const wasOffline = useRef(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const showToast = useCallback((message: string) => {
@@ -48,37 +79,40 @@ export function NetworkProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 2500);
-    return () => clearTimeout(t);
+    const t = window.setTimeout(() => setToast(null), 2500);
+    return () => window.clearTimeout(t);
   }, [toast]);
 
+  // Toast only when recovering from a known offline stretch (skip first mount)
   useEffect(() => {
-    setOnline(navigator.onLine);
-
-    function onOnline() {
-      setOnline(true);
+    if (!online) {
+      wasOffline.current = true;
+      document.body.classList.add("is-offline");
+      return;
+    }
+    document.body.classList.remove("is-offline");
+    if (wasOffline.current) {
+      wasOffline.current = false;
       setToast("Соединение восстановлено");
     }
-    function onOffline() {
-      setOnline(false);
-    }
+  }, [online]);
 
-    window.addEventListener("online", onOnline);
-    window.addEventListener("offline", onOffline);
-    return () => {
-      window.removeEventListener("online", onOnline);
-      window.removeEventListener("offline", onOffline);
-    };
+  useEffect(() => {
+    return () => document.body.classList.remove("is-offline");
   }, []);
 
   const requireOnline = useCallback(() => {
     if (typeof navigator !== "undefined" && navigator.onLine) return true;
-    setToast("Нет соединения — изменения не сохранятся, пока не появится интернет");
+    setToast(
+      "Нет соединения — изменения не сохранятся, пока не появится интернет",
+    );
     return false;
   }, []);
 
   return (
     <NetworkContext.Provider value={{ online, requireOnline, showToast }}>
+      {/* Global banner — rendered from layout via Providers, all pages */}
+      <OfflineBanner visible={!online} />
       {children}
       {toast && (
         <div className="network-toast" role="status" aria-live="polite">

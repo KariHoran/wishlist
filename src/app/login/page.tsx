@@ -7,7 +7,6 @@ import { FormEvent, Suspense, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { PasswordInput } from "@/components/PasswordInput";
 import { WinSetup, WinWelcome } from "@/components/WinDecor";
-import { OfflineBanner } from "@/components/NetworkProvider";
 import { useNetwork } from "@/components/NetworkProvider";
 
 const LOGIN_TIMEOUT_MS = 10_000;
@@ -143,7 +142,6 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <div className="page-frame grid-bg relative overflow-hidden">
-      <OfflineBanner />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/decor/halftone-cat.svg"

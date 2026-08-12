@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/Logo";
 import { NotificationBell } from "@/components/NotificationBell";
-import { OfflineBanner } from "@/components/NetworkProvider";
 
 const links = [
   { href: "/dashboard", label: "Мои вишлисты" },
@@ -69,7 +68,6 @@ export function Navbar({
       </div>
       {/* Separate divider block with vertical spacing so wrapped titles don't overlap */}
       <div className="mx-4 mt-1 mb-4 border-b-2 border-black md:mx-8" />
-      <OfflineBanner />
     </header>
   );
 }
