@@ -13,6 +13,8 @@ export type NotificationPayload = {
   contributionId?: string;
   refunded?: boolean;
   requestId?: string;
+  message?: string;
+  anonymous?: boolean;
 };
 
 export async function createNotification(
@@ -42,10 +44,22 @@ export function formatNotificationText(
       ? `${Number(payload.amount).toLocaleString("ru-RU")} ₽`
       : "";
   const actor = payload.actorName ?? "Кто-то";
+  const msg = payload.message?.trim();
+  const msgPart = msg
+    ? payload.anonymous
+      ? ` Аноним: «${msg}»`
+      : ` Сообщение: «${msg}»`
+    : "";
 
   switch (type) {
     case "ITEM_RESERVED_BY_YOU":
       return `Вы зарезервировали ${item}${list}`;
+    case "ITEM_RESERVED":
+      return `Подарок ${item}${list} забронирован.${msgPart}`;
+    case "ITEM_CONTRIBUTED":
+      return amount
+        ? `Новый взнос ${amount} на ${item}${list}.${msgPart}`
+        : `Новый взнос на ${item}${list}.${msgPart}`;
     case "ITEM_CANCELLED_REFUND_DUE":
       return `Автор отменил сбор на ${item} — вам полагается возврат ${amount}`;
     case "REFUND_MARKED_DONE":

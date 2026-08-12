@@ -10,22 +10,23 @@ export function formatPercent(value: number, digits = 0): string {
   })}%`;
 }
 
-export function calcCollectedPercent(collected: number, price: number): number {
-  if (price <= 0) return 0;
-  return Math.min(100, (collected / price) * 100);
-}
+export {
+  calcCollectedPercent,
+  wishlistProgress,
+  isItemFundingFulfilled,
+} from "@/lib/wishlist-progress";
 
-export function wishlistProgress(items: { status: string }[]) {
-  const total = items.length;
-  const done = items.filter(
-    (i) => i.status === "RESERVED" || i.status === "FUNDING",
-  ).length;
-  // "собрано" in mockups = reserved or fully funded items ratio for wishlist-level bar
-  const collected = items.filter((i) => i.status === "RESERVED").length;
-  const percent = total === 0 ? 0 : Math.round((collected / total) * 100);
-  return { total, collected, percent, done };
-}
+export {
+  computeSplitPerPerson,
+  amountForSplitIndex,
+  computeSplitBreakdown,
+  shouldCloseFixedSplit,
+  canJoinFixedSplit,
+} from "@/lib/split-calculator";
 
+import { calcCollectedPercent } from "@/lib/wishlist-progress";
+
+/** @deprecated use calcCollectedPercent */
 export function itemFundingPercent(
   amountCollected: number | string,
   price: number | string,

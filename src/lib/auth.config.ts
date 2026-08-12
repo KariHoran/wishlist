@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import { encode as encodeJwt, decode as decodeJwt, type JWT } from "next-auth/jwt";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
+import { authenticateCredentials } from "@/lib/credentials-auth";
 
 /** Keep session JWT tiny — oversized JWTs get chunked into dozens of Set-Cookie
  *  headers and browsers abort with net::ERR_HTTP2_PROTOCOL_ERROR.
@@ -51,35 +52,24 @@ export const authConfig: NextAuthConfig = {
       },
       async authorize(credentials) {
         try {
-          const email = String(credentials?.email ?? "")
-            .trim()
-            .toLowerCase();
+          const email = String(credentials?.email ?? "");
           const password = String(credentials?.password ?? "");
-          if (!email || !password) return null;
 
-          const user = await prisma.user.findUnique({
-            where: { email },
-            select: {
-              id: true,
-              email: true,
-              displayName: true,
-              avatarUrl: true,
-              handle: true,
-              passwordHash: true,
-            },
+          return authenticateCredentials(email, password, {
+            findUserByEmail: (e) =>
+              prisma.user.findUnique({
+                where: { email: e },
+                select: {
+                  id: true,
+                  email: true,
+                  displayName: true,
+                  avatarUrl: true,
+                  handle: true,
+                  passwordHash: true,
+                },
+              }),
+            verifyPassword,
           });
-          if (!user) return null;
-
-          const ok = await verifyPassword(password, user.passwordHash);
-          if (!ok) return null;
-
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.displayName,
-            image: sessionImage(user.avatarUrl),
-            handle: user.handle,
-          };
         } catch (err) {
           console.error("[auth] authorize failed", err);
           return null;

@@ -17,7 +17,9 @@ export default async function PublicFriendPage({ params }: Props) {
     include: {
       wishlists: {
         where: { isPublic: true },
-        include: { items: true },
+        include: {
+          items: { where: { status: { not: "CANCELLED" } } },
+        },
         orderBy: { createdAt: "desc" },
       },
     },

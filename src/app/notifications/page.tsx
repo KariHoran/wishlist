@@ -31,7 +31,7 @@ export default function NotificationsPage() {
   }, []);
 
   useEffect(() => {
-    load();
+    const timer = window.setTimeout(() => void load(), 0);
     const es = new EventSource("/api/notifications/events");
     es.onmessage = (ev) => {
       try {
@@ -41,7 +41,10 @@ export default function NotificationsPage() {
         /* ignore */
       }
     };
-    return () => es.close();
+    return () => {
+      window.clearTimeout(timer);
+      es.close();
+    };
   }, [load]);
 
   return (

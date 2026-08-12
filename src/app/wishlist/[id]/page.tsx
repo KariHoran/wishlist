@@ -18,6 +18,7 @@ export default async function WishlistPage({ params }: Props) {
         where: { status: { not: "CANCELLED" } },
         include: {
           contributions: {
+            where: { refunded: false },
             include: { user: { select: { id: true, displayName: true, handle: true } } },
             orderBy: { createdAt: "asc" },
           },
@@ -42,22 +43,56 @@ export default async function WishlistPage({ params }: Props) {
 
   const items = isOwner
     ? wishlist.items.map((item) => ({
-        ...item,
+        id: item.id,
+        name: item.name,
         price: item.price.toString(),
+        imageUrl: item.imageUrl,
+        productUrl: item.productUrl,
+        status: item.status,
         amountCollected: item.amountCollected.toString(),
+        fundingMode: item.fundingMode,
+        splitParticipants: item.splitParticipants,
+        splitAmountPerPerson: item.splitAmountPerPerson
+          ? item.splitAmountPerPerson.toString()
+          : null,
+        reservationMessage: item.reservationMessage,
+        reservationAnonymous: item.reservationAnonymous,
         reservedBy: null,
         reservedById: item.reservedById ? "hidden" : null,
         contributions: [],
         contributorCount: item.contributions.length,
       }))
     : wishlist.items.map((item) => ({
-        ...item,
+        id: item.id,
+        name: item.name,
         price: item.price.toString(),
+        imageUrl: item.imageUrl,
+        productUrl: item.productUrl,
+        status: item.status,
         amountCollected: item.amountCollected.toString(),
+        fundingMode: item.fundingMode,
+        splitParticipants: item.splitParticipants,
+        splitAmountPerPerson: item.splitAmountPerPerson
+          ? item.splitAmountPerPerson.toString()
+          : null,
+        reservationMessage: item.reservationMessage,
+        reservationAnonymous: item.reservationAnonymous,
+        reservedById: item.reservedById,
+        reservedBy: item.reservedBy
+          ? item.reservationAnonymous
+            ? { id: item.reservedBy.id, displayName: "Аноним", handle: "anon" }
+            : item.reservedBy
+          : null,
         contributions: item.contributions.map((c) => ({
-          ...c,
+          id: c.id,
           amount: c.amount.toString(),
+          message: c.message,
+          isAnonymous: c.isAnonymous,
+          user: c.isAnonymous
+            ? { id: c.user.id, displayName: "Аноним", handle: "anon" }
+            : c.user,
         })),
+        contributorCount: item.contributions.length,
       }));
 
   return (

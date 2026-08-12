@@ -49,7 +49,10 @@ export default async function FriendsPage() {
         isPublic: true,
         ownerId: { in: friends.map((f) => f.id) },
       },
-      include: { items: true, owner: true },
+      include: {
+        items: { where: { status: { not: "CANCELLED" } } },
+        owner: true,
+      },
       orderBy: { createdAt: "desc" },
     }),
   ]);

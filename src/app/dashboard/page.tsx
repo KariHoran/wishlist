@@ -16,7 +16,9 @@ export default async function DashboardPage() {
     where: { id: session.user.id },
     include: {
       wishlists: {
-        include: { items: true },
+        include: {
+          items: { where: { status: { not: "CANCELLED" } } },
+        },
         orderBy: { createdAt: "desc" },
       },
     },

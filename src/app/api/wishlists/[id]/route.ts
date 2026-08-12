@@ -52,7 +52,26 @@ export async function GET(_req: Request, ctx: Ctx) {
     return NextResponse.json({ wishlist: sanitized, viewerRole: "owner" });
   }
 
-  return NextResponse.json({ wishlist, viewerRole: "guest" });
+  const forGuest = {
+    ...wishlist,
+    items: wishlist.items.map((item) => ({
+      ...item,
+      reservedBy: item.reservedBy
+        ? item.reservationAnonymous
+          ? { id: item.reservedBy.id, displayName: "Аноним", handle: "anon" }
+          : item.reservedBy
+        : null,
+      contributions: item.contributions.map((c) => ({
+        ...c,
+        user: c.isAnonymous
+          ? { id: c.user.id, displayName: "Аноним", handle: "anon" }
+          : c.user,
+      })),
+      contributorCount: item.contributions.length,
+    })),
+  };
+
+  return NextResponse.json({ wishlist: forGuest, viewerRole: "guest" });
 }
 
 export async function PATCH(req: Request, ctx: Ctx) {

@@ -70,34 +70,41 @@ model Wishlist {
 }
 
 model Item {
-  id              String         @id @default(cuid())
-  wishlist        Wishlist       @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
-  wishlistId      String
-  name            String
-  price           Decimal        @db.Decimal(12, 2)
-  imageUrl        String?
-  productUrl      String?
-  status          ItemStatus     @default(AVAILABLE)
-  reservedBy      User?          @relation("ReservedBy", fields: [reservedById], references: [id], onDelete: SetNull)
-  reservedById    String?
-  amountCollected Decimal        @default(0) @db.Decimal(12, 2)
-  contributions   Contribution[]
-  createdAt       DateTime       @default(now())
+  id                   String         @id @default(cuid())
+  wishlist             Wishlist       @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  wishlistId           String
+  name                 String
+  price                Decimal        @db.Decimal(12, 2)
+  imageUrl             String?
+  productUrl           String?
+  status               ItemStatus     @default(AVAILABLE)
+  reservedBy           User?          @relation("ReservedBy", fields: [reservedById], references: [id], onDelete: SetNull)
+  reservedById         String?
+  reservationMessage   String?
+  reservationAnonymous Boolean        @default(false)
+  amountCollected      Decimal        @default(0) @db.Decimal(12, 2)
+  fundingMode          FundingMode    @default(FREE)
+  splitParticipants    Int?
+  splitAmountPerPerson Decimal?       @db.Decimal(12, 2)
+  contributions        Contribution[]
+  createdAt            DateTime       @default(now())
 
   @@index([wishlistId])
   @@index([status])
 }
 
 model Contribution {
-  id         String    @id @default(cuid())
-  item       Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  itemId     String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId     String
-  amount     Decimal   @db.Decimal(12, 2)
-  refunded   Boolean   @default(false)
-  refundedAt DateTime?
-  createdAt  DateTime  @default(now())
+  id          String    @id @default(cuid())
+  item        Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  amount      Decimal   @db.Decimal(12, 2)
+  message     String?
+  isAnonymous Boolean   @default(false)
+  refunded    Boolean   @default(false)
+  refundedAt  DateTime?
+  createdAt   DateTime  @default(now())
 
   @@index([itemId])
   @@index([userId])
@@ -124,6 +131,11 @@ enum ItemStatus {
   CANCELLED
 }
 
+enum FundingMode {
+  FREE
+  FIXED_SPLIT
+}
+
 enum RequestStatus {
   PENDING
   ACCEPTED
@@ -132,6 +144,8 @@ enum RequestStatus {
 
 enum NotificationType {
   ITEM_RESERVED_BY_YOU
+  ITEM_RESERVED
+  ITEM_CONTRIBUTED
   ITEM_CANCELLED_REFUND_DUE
   REFUND_MARKED_DONE
   GOAL_REACHED

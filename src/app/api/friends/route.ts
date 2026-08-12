@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notifications";
-
-function friendshipPair(a: string, b: string): [string, string] {
-  return a < b ? [a, b] : [b, a];
-}
+import {
+  friendshipPair,
+  validateFriendRequestSend,
+} from "@/lib/friend-requests";
 
 export async function GET() {
   const session = await auth();
@@ -66,32 +66,40 @@ export async function POST(req: Request) {
   const existingFriendship = await prisma.friendship.findUnique({
     where: { userAId_userBId: { userAId: a, userBId: b } },
   });
-  if (existingFriendship) {
-    return NextResponse.json({ error: "Уже в друзьях" }, { status: 409 });
-  }
 
-  // Incoming pending from them → suggest accepting
   const incoming = await prisma.friendRequest.findFirst({
     where: { fromId: friend.id, toId: me, status: "PENDING" },
   });
-  if (incoming) {
-    return NextResponse.json({
-      needsAccept: true,
-      requestId: incoming.id,
-      from: {
-        id: friend.id,
-        displayName: friend.displayName,
-        handle: friend.handle,
-      },
-      error: `${friend.displayName} уже отправил(а) вам заявку — примите её`,
-    }, { status: 409 });
-  }
 
   const outgoing = await prisma.friendRequest.findFirst({
     where: { fromId: me, toId: friend.id, status: "PENDING" },
   });
-  if (outgoing) {
-    return NextResponse.json({ error: "Заявка уже отправлена" }, { status: 409 });
+
+  const validation = validateFriendRequestSend({
+    meId: me,
+    friendId: friend.id,
+    alreadyFriends: Boolean(existingFriendship),
+    incomingPending: incoming,
+    outgoingPending: outgoing,
+  });
+  if (!validation.ok) {
+    return NextResponse.json(
+      {
+        error: validation.error,
+        ...(validation.needsAccept
+          ? {
+              needsAccept: true,
+              requestId: validation.requestId,
+              from: {
+                id: friend.id,
+                displayName: friend.displayName,
+                handle: friend.handle,
+              },
+            }
+          : {}),
+      },
+      { status: validation.statusCode },
+    );
   }
 
   // Reuse declined/accepted unique pair if exists
