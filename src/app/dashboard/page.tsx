@@ -35,12 +35,12 @@ export default async function DashboardPage() {
 
   return (
     <div className="page-frame grid-bg relative isolate">
-      {/* Small sticker above stats row — must not intersect card boxes */}
+      {/* Sticker sits in the title band only — bottom must stay above stats cards */}
       <DecorImage
         src="/decor/cat-halftone-face.png"
-        width={88}
-        height={96}
-        className="top-[6.75rem] left-1/2 hidden w-[4.5rem] -translate-x-1/2 opacity-85 xl:block"
+        width={72}
+        height={78}
+        className="top-[5.25rem] left-1/2 hidden w-16 -translate-x-1/2 opacity-90 xl:block"
       />
       <DecorImage
         src="/decor/paw-print.png"
@@ -87,7 +87,7 @@ export default async function DashboardPage() {
           <CreateWishlistButton />
         </div>
 
-        <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="relative z-10 mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <StatCard icon="📁" title="Всего вишлистов" value={String(wishlists.length)} />
           <StatCard icon="⏳" title="Собрано" value={`${collectedPct}%`} />
           <StatCard icon="📄" title="Всего предметов" value={String(totalItems)} />
