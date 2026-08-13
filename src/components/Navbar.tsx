@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/Logo";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -57,8 +58,7 @@ export function Navbar({
             title={displayName ?? "Аккаунт"}
             style={{ borderRadius: "9999px" }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={avatarUrl || "/decor/avatar-halftone-cat.png"}
               alt={`Аватар пользователя ${displayName ?? "аккаунт"}`}
               width={40}

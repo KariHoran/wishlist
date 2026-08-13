@@ -52,6 +52,8 @@ npm-install.log
 # local unprocessed decor backups
 public/decor/*.src.png
 
+# Lighthouse local runs (may contain session cookies in extra-headers)
+/lighthouse-reports/
 
 # Sentry Config File
 .env.sentry-build-plugin

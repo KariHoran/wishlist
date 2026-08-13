@@ -107,7 +107,7 @@ export default function RegisterPage() {
       />
 
       <main className="relative z-10 mx-auto flex min-h-[calc(100dvh-10px)] w-full max-w-md flex-col items-center justify-center px-4 py-10">
-        <Logo size="lg" href={null} />
+        <Logo size="lg" href={null} priority />
         <p className="pixel-font mt-3 mb-8 text-center text-xs md:text-sm">
           Welcome back! Let&apos;s check your wishes
         </p>

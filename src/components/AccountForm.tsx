@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   AVATAR_MAX_INPUT_BYTES,
@@ -116,12 +117,12 @@ export function AccountForm({
   return (
     <form onSubmit={onSubmit} className="hard-border space-y-4 bg-white p-5">
       <div className="flex items-center gap-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={preview || "/decor/avatar-halftone-cat.png"}
           alt={`Аватар ${displayName}`}
           width={64}
           height={64}
+          unoptimized={Boolean(preview?.startsWith("blob:"))}
           className="h-16 w-16 rounded-full border-2 border-black object-cover"
         />
         <div className="space-y-1">

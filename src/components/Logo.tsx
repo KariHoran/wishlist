@@ -1,13 +1,17 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export function Logo({
   size = "md",
   href = "/",
   light = false,
+  priority = false,
 }: {
   size?: "sm" | "md" | "lg";
   href?: string | null;
   light?: boolean;
+  /** Mark logo icon as LCP candidate on auth/landing screens */
+  priority?: boolean;
 }) {
   const sizes = {
     sm: "text-lg",
@@ -19,12 +23,13 @@ export function Logo({
     <span
       className={`pixel-font ${sizes[size]} ${light ? "text-white" : "text-black"} inline-flex items-center gap-2`}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/decor/star-pixel-pastel.png"
+      <Image
+        src="/decor/star-pixel-logo.png"
         alt=""
         width={icon}
         height={icon}
+        sizes={`${icon}px`}
+        priority={priority}
         className="inline-block"
         draggable={false}
       />

@@ -8,6 +8,8 @@ const silkscreen = Silkscreen({
   subsets: ["latin"],
   variable: "--font-silkscreen",
   display: "swap",
+  preload: true,
+  adjustFontFallback: true,
 });
 
 const vt323 = VT323({
@@ -15,6 +17,8 @@ const vt323 = VT323({
   subsets: ["latin"],
   variable: "--font-vt323",
   display: "swap",
+  preload: false,
+  adjustFontFallback: true,
 });
 
 const pressStart = Press_Start_2P({
@@ -22,6 +26,8 @@ const pressStart = Press_Start_2P({
   subsets: ["latin"],
   variable: "--font-press-start",
   display: "swap",
+  preload: false,
+  adjustFontFallback: true,
 });
 
 export const metadata: Metadata = {

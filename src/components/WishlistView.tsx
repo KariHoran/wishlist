@@ -565,7 +565,7 @@ export function WishlistView({
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {visibleItems.map((item) => {
+          {visibleItems.map((item, itemIndex) => {
           const statusLabel =
             item.status === "RESERVED"
               ? "Забронировано"
@@ -615,12 +615,15 @@ export function WishlistView({
                   </button>
                 </div>
               )}
-              <div className="aspect-square border-b-2 border-black bg-[#eee]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+              <div className="relative aspect-square border-b-2 border-black bg-[#eee]">
+                <Image
                   src={item.imageUrl || "/decor/cat-halftone-portrait.png"}
                   alt={`Фото подарка: ${item.name}`}
-                  className={`h-full w-full object-cover ${item.status === "RESERVED" ? "grayscale" : ""}`}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 200px"
+                  // First cards are LCP on wishlist grid — don't lazy-load them
+                  priority={itemIndex < 2}
+                  className={`object-cover ${item.status === "RESERVED" ? "grayscale" : ""}`}
                 />
               </div>
               <div className="p-3">
@@ -923,12 +926,13 @@ function ItemModal({
         {isOwner && (
           <div className="space-y-4">
             <div className="flex gap-4">
-              <div className="hard-border h-28 w-28 shrink-0 overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+              <div className="relative hard-border h-28 w-28 shrink-0 overflow-hidden">
+                <Image
                   src={item.imageUrl || "/decor/cat-halftone-portrait.png"}
                   alt={`Фото подарка: ${item.name}`}
-                  className="h-full w-full object-cover"
+                  fill
+                  sizes="112px"
+                  className="object-cover"
                 />
               </div>
               <div className="flex-1">
@@ -1074,12 +1078,13 @@ function ItemModal({
         {!isOwner && isFunding && !chipIn && item.status !== "RESERVED" && (
           <div className="space-y-4">
             <div className="flex flex-col gap-4 sm:flex-row">
-              <div className="hard-border h-32 w-32 shrink-0 overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+              <div className="relative hard-border h-32 w-32 shrink-0 overflow-hidden">
+                <Image
                   src={item.imageUrl || "/decor/cat-halftone-portrait.png"}
                   alt={`Фото подарка: ${item.name}`}
-                  className="h-full w-full object-cover"
+                  fill
+                  sizes="128px"
+                  className="object-cover"
                 />
               </div>
               <div className="flex-1">
@@ -1167,12 +1172,13 @@ function ItemModal({
           !reserveForm &&
           Number(item.amountCollected) === 0 && (
             <div className="space-y-5">
-              <div className="mx-auto hard-border h-48 w-48 overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+              <div className="relative mx-auto hard-border h-48 w-48 overflow-hidden">
+                <Image
                   src={item.imageUrl || "/decor/cat-halftone-portrait.png"}
                   alt={`Фото подарка: ${item.name}`}
-                  className="h-full w-full object-cover"
+                  fill
+                  sizes="192px"
+                  className="object-cover"
                 />
               </div>
               <p className="display-font text-center text-2xl">
@@ -1256,12 +1262,13 @@ function ItemModal({
         {/* Reserved by someone */}
         {!isOwner && item.status === "RESERVED" && !reserveForm && (
           <div className="space-y-4 text-center">
-            <div className="mx-auto hard-border h-48 w-48 overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+            <div className="relative mx-auto hard-border h-48 w-48 overflow-hidden">
+              <Image
                 src={item.imageUrl || "/decor/cat-halftone-portrait.png"}
                 alt={`Фото подарка: ${item.name}`}
-                className="h-full w-full object-cover grayscale"
+                fill
+                sizes="192px"
+                className="object-cover grayscale"
               />
             </div>
             <p className="mono-font text-xl">
@@ -1710,10 +1717,12 @@ function ItemFormModal({
               />
             </label>
             {preview && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={preview}
-                  alt="Превью загруженного фото"
+                alt="Превью загруженного фото"
+                width={64}
+                height={64}
+                unoptimized={preview.startsWith("data:")}
                 className="hard-border h-16 w-16 object-cover"
                 referrerPolicy="no-referrer"
               />

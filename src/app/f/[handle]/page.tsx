@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -48,8 +49,7 @@ export default async function PublicFriendPage({ params }: Props) {
 
       <main className="mx-auto max-w-6xl px-4 py-6 md:px-8">
         <div className="mb-6 flex items-start gap-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={profile.avatarUrl || "/decor/avatar-halftone-cat.png"}
             alt={`Аватар пользователя ${profile.displayName}`}
             width={56}

@@ -64,12 +64,11 @@ model Wishlist {
   emoji      String?   @default("💖")
   isPublic   Boolean   @default(false)
   deadline   DateTime?
-  shareToken String    @unique @default(cuid())
+  shareToken String    @unique @default(cuid()) // UNIQUE creates btree index in Postgres
   createdAt  DateTime  @default(now())
   items      Item[]
 
   @@index([ownerId])
-  @@index([shareToken])
 }
 
 model Item {

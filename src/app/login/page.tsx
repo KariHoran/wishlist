@@ -172,18 +172,15 @@ export default function LoginPage() {
         height={120}
         className="top-44 right-10 hidden w-48 rotate-2 opacity-95 lg:block"
       />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <DecorImage
         src="/decor/orbit-star.svg"
-        alt=""
         width={80}
         height={80}
-        className="page-decor right-8 bottom-10 hidden w-20 opacity-90 lg:block"
-        draggable={false}
+        className="right-8 bottom-10 hidden w-20 opacity-90 lg:block"
       />
 
       <main className="relative z-10 mx-auto flex min-h-[calc(100dvh-10px)] w-full max-w-md flex-col items-center justify-center px-4 py-10">
-        <Logo size="lg" href={null} />
+        <Logo size="lg" href={null} priority />
         <p className="pixel-font mt-3 mb-8 text-center text-xs md:text-sm">
           Welcome back! Let&apos;s check your wishes
         </p>

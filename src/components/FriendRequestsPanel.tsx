@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useNetwork } from "@/components/NetworkProvider";
 import { RetroInlineState } from "@/components/RetroState";
@@ -92,8 +93,7 @@ export function FriendRequestsPanel({
                 className="hard-border flex flex-wrap items-center justify-between gap-3 bg-white p-3"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Image
                     src={r.from.avatarUrl || "/decor/avatar-halftone-cat.png"}
                     alt={`Аватар пользователя ${r.from.displayName}`}
                     width={40}
@@ -141,8 +141,7 @@ export function FriendRequestsPanel({
                 className="hard-border flex flex-wrap items-center justify-between gap-3 bg-white p-3"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Image
                     src={r.to.avatarUrl || "/decor/avatar-halftone-cat.png"}
                     alt={`Аватар пользователя ${r.to.displayName}`}
                     width={40}

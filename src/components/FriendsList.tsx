@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { ProgressBar } from "@/components/ProgressBar";
@@ -65,8 +66,7 @@ export function FriendsList({ initialFriends }: { initialFriends: FriendCard[] }
           <summary className="cursor-pointer list-none">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={f.avatarUrl || DEFAULT_AVATAR}
                   alt={`Аватар пользователя ${f.displayName}`}
                   width={40}

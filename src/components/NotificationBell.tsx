@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 
 type NotificationRow = {
@@ -99,8 +100,7 @@ export function NotificationBell() {
         className="hard-border relative flex h-10 w-10 items-center justify-center bg-white"
         aria-label="Уведомления"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src="/decor/envelope.svg"
           alt=""
           width={26}
