@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
+import * as Sentry from "@sentry/nextjs";
 
 const authRequiredPrefixes = ["/dashboard", "/friends", "/account", "/notifications"];
 
-export async function middleware(req: NextRequest) {
+async function middlewareHandler(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (
@@ -42,6 +43,9 @@ export async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
+export const middleware = Sentry.wrapMiddlewareWithSentry(middlewareHandler);
+
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Exclude Sentry tunnel (/monitoring) so client error reports aren't intercepted.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|monitoring).*)"],
 };

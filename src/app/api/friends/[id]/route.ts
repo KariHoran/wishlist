@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notifications";
@@ -20,6 +21,10 @@ export async function PATCH(req: Request, { params }: Props) {
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
   const action = String(body.action ?? "");
+  Sentry.setUser({ id: me });
+  Sentry.setTag("route", "friends_request_action");
+  Sentry.setTag("friend_request_id", id);
+  if (action) Sentry.setTag("friend_action", action);
 
   const request = await prisma.friendRequest.findUnique({
     where: { id },

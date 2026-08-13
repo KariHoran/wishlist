@@ -2,6 +2,7 @@ import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { captureRouteError } from "@/lib/sentry-report";
 
 const MAX_BYTES = 2 * 1024 * 1024;
 
@@ -48,6 +49,10 @@ export async function POST(req: Request) {
     );
     return NextResponse.json({ url: blob.url });
   } catch (err) {
+    captureRouteError(err, {
+      userId: session.user.id,
+      tags: { route: "avatar_upload" },
+    });
     console.error("[avatar] upload failed", err);
     return NextResponse.json(
       { error: "Не удалось загрузить аватар" },

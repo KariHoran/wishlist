@@ -28,6 +28,8 @@ import {
   emailGoalReached,
   getUserEmailIfEnabled,
 } from "@/lib/email";
+import * as Sentry from "@sentry/nextjs";
+import { captureRouteError } from "@/lib/sentry-report";
 
 type Ctx = { params: Promise<{ itemId: string }> };
 
@@ -153,6 +155,16 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if (item.status === "CANCELLED") {
     return NextResponse.json({ error: "Предмет отменён" }, { status: 410 });
   }
+
+  Sentry.setTag("itemId", itemId);
+  Sentry.setTag("wishlistId", item.wishlistId);
+  if (action) Sentry.setTag("item_action", action);
+  Sentry.setUser({ id: session.user.id });
+  Sentry.setContext("item_mutation", {
+    itemId,
+    wishlistId: item.wishlistId,
+    action,
+  });
 
   try {
     if (action === "update" && isOwner) {
@@ -474,6 +486,16 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (e) {
+    captureRouteError(e, {
+      userId: session.user.id,
+      tags: {
+        itemId,
+        wishlistId: item.wishlistId,
+        item_action: action || "unknown",
+      },
+      contextKey: "item_mutation",
+      context: { itemId, wishlistId: item.wishlistId, action },
+    });
     console.error(e);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }

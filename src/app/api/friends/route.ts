@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notifications";
@@ -46,6 +47,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const me = session.user.id;
+  Sentry.setUser({ id: me });
+  Sentry.setTag("route", "friends_request");
   const limit = await enforceRateLimit(RATE_LIMITS.friendRequest, me);
   if (!limit.ok) {
     return NextResponse.json(limit.body, {
@@ -70,6 +73,7 @@ export async function POST(req: Request) {
   if (friend.id === me) {
     return NextResponse.json({ error: "Нельзя добавить себя" }, { status: 400 });
   }
+  Sentry.setTag("friendId", friend.id);
 
   const [a, b] = friendshipPair(me, friend.id);
   const existingFriendship = await prisma.friendship.findUnique({

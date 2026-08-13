@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, slugifyHandle } from "@/lib/password";
 import { enforceRateLimit, getRequestIp, RATE_LIMITS } from "@/lib/rate-limit";
+import { captureRouteError } from "@/lib/sentry-report";
 
 export async function POST(req: Request) {
   try {
@@ -51,6 +52,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true, user });
   } catch (e) {
+    captureRouteError(e, {
+      tags: { route: "register" },
+      contextKey: "register",
+    });
     console.error(e);
     return NextResponse.json({ error: "Ошибка регистрации" }, { status: 500 });
   }

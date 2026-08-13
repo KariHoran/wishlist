@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notifications";
@@ -11,6 +12,10 @@ export async function PATCH(_req: Request, ctx: Ctx) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  Sentry.setUser({ id: session.user.id });
+  Sentry.setTag("route", "contribution_refund");
+  Sentry.setTag("contributionId", id);
 
   const contribution = await prisma.contribution.findUnique({
     where: { id },
@@ -27,6 +32,9 @@ export async function PATCH(_req: Request, ctx: Ctx) {
   if (!contribution) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  Sentry.setTag("itemId", contribution.item.id);
+  Sentry.setTag("wishlistId", contribution.item.wishlist.id);
 
   if (contribution.item.wishlist.ownerId !== session.user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

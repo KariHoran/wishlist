@@ -52,3 +52,6 @@ npm-install.log
 # local unprocessed decor backups
 public/decor/*.src.png
 
+
+# Sentry Config File
+.env.sentry-build-plugin
