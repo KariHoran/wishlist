@@ -6,8 +6,22 @@ import { wishlistProgress } from "@/lib/money";
 
 type Props = { params: Promise<{ shareToken: string }> };
 
-/** ISR: public share HTML can live at the CDN for ~60s (realtime refreshes after load). */
+/**
+ * ISR for public share HTML.
+ * Dynamic `[shareToken]` routes stay fully dynamic (Cache-Control: private, no-store)
+ * unless we opt into static generation — without this, Vercel never CDN-caches the page
+ * and every cold hit pays Neon wake + serverless TTFB (~3–7s).
+ *
+ * Empty generateStaticParams + dynamicParams: generate on first request, then revalidate.
+ * Realtime (SSE/Pusher) refreshes progress after load, so ~60s HTML staleness is fine.
+ */
 export const revalidate = 60;
+export const dynamic = "force-static";
+export const dynamicParams = true;
+
+export function generateStaticParams() {
+  return [] as { shareToken: string }[];
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { shareToken } = await params;

@@ -22,7 +22,7 @@ async function middlewareHandler(req: NextRequest) {
     pathname === "/login" ||
     pathname === "/register";
 
-  // Public share pages (/w/...) skip JWT parsing so ISR/CDN can stay fast.
+  // Public pages (/, /f/..., etc.) — no JWT. /w/* is excluded via matcher.
   if (!needsAuthGate) {
     return NextResponse.next();
   }
@@ -56,6 +56,10 @@ async function middlewareHandler(req: NextRequest) {
 export const middleware = Sentry.wrapMiddlewareWithSentry(middlewareHandler);
 
 export const config = {
-  // Exclude Sentry tunnel (/monitoring) so client error reports aren't intercepted.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|monitoring).*)"],
+  // Exclude static assets, Sentry tunnel, and public share pages.
+  // /w/* must not run middleware — even a no-op next() can keep the route dynamic
+  // and prevent ISR/CDN caching (x-vercel-cache stays MISS).
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|monitoring|w/).*)",
+  ],
 };
