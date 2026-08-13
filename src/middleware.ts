@@ -17,6 +17,16 @@ async function middlewareHandler(req: NextRequest) {
     return NextResponse.next();
   }
 
+  const needsAuthGate =
+    authRequiredPrefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`)) ||
+    pathname === "/login" ||
+    pathname === "/register";
+
+  // Public share pages (/w/...) skip JWT parsing so ISR/CDN can stay fast.
+  if (!needsAuthGate) {
+    return NextResponse.next();
+  }
+
   // Auth.js v5 encrypts cookies with salt = cookie name.
   // On HTTPS the cookie is `__Secure-authjs.session-token`; without
   // secureCookie:true getToken looks for `authjs.session-token` and fails,
