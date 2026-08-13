@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import * as Sentry from "@sentry/nextjs";
 import { NetworkProvider } from "@/components/NetworkProvider";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 function SentryUserSync({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
@@ -27,7 +28,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <SessionProvider>
       <SentryUserSync>
         <AppErrorBoundary>
-          <NetworkProvider>{children}</NetworkProvider>
+          <NetworkProvider>
+            <ServiceWorkerRegister />
+            {children}
+          </NetworkProvider>
         </AppErrorBoundary>
       </SentryUserSync>
     </SessionProvider>

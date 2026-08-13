@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Press_Start_2P, Silkscreen, VT323 } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
@@ -31,8 +31,38 @@ const pressStart = Press_Start_2P({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXTAUTH_URL ?? "https://wishlist-ashy-three.vercel.app",
+  ),
   title: "✦ Wishlist",
   description: "Вишлисты с резервированием подарков и складчиной",
+  applicationName: "Wishlist",
+  appleWebApp: {
+    capable: true,
+    title: "Wishlist",
+    statusBarStyle: "default",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      {
+        url: "/icons/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  colorScheme: "light",
 };
 
 export default function RootLayout({

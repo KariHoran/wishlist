@@ -62,7 +62,8 @@ export function OfflineBanner({ visible }: { visible: boolean }) {
     <div className="offline-banner" role="status" aria-live="assertive">
       <span aria-hidden>⚠</span>
       <span>
-        Нет соединения — изменения не сохранятся, пока не появится интернет
+        Нет соединения — уже открытые страницы доступны из кэша; изменения не
+        сохранятся, пока не появится интернет
       </span>
     </div>
   );
