@@ -471,7 +471,7 @@ export function WishlistView({
           ← Обратно к вишлистам
         </Link>
         {isOwner && (
-          <div className="flex flex-wrap items-start gap-4">
+          <div className="flex max-w-full flex-wrap items-start justify-end gap-x-2 gap-y-1 md:gap-x-3">
             <button
               type="button"
               onClick={() => {
@@ -480,7 +480,7 @@ export function WishlistView({
               }}
               disabled={!online}
               title={!online ? "Нет соединения" : undefined}
-              className="pixel-font text-xs underline underline-offset-4 leading-normal md:text-sm"
+              className="pixel-font text-[10px] underline underline-offset-4 leading-normal md:text-xs"
             >
               Редактировать
             </button>
@@ -489,7 +489,7 @@ export function WishlistView({
               onClick={() => togglePublic()}
               disabled={busy || !online}
               title={!online ? "Нет соединения" : undefined}
-              className="pixel-font text-xs underline underline-offset-4 leading-normal md:text-sm"
+              className="pixel-font text-[10px] underline underline-offset-4 leading-normal md:text-xs"
             >
               {wishlist.isPublic ? "Сделать личным" : "Сделать публичным"}
             </button>
@@ -498,7 +498,7 @@ export function WishlistView({
                 <button
                   type="button"
                   onClick={() => void copyShareLink()}
-                  className="pixel-font text-xs underline underline-offset-4 leading-normal md:text-sm"
+                  className="pixel-font text-[10px] underline underline-offset-4 leading-normal md:text-xs"
                   title="Скопировать публичную ссылку"
                 >
                   {shareToast ? "✓ Скопировано!" : "Поделиться ссылкой"}
@@ -507,7 +507,7 @@ export function WishlistView({
                   type="button"
                   onClick={() => void regenerateShareToken()}
                   disabled={!online}
-                  className="pixel-font text-xs text-[#888] underline underline-offset-4 leading-normal md:text-sm"
+                  className="pixel-font text-[10px] text-[#888] underline underline-offset-4 leading-normal md:text-xs"
                   title="Сбросить старую ссылку и выпустить новую"
                 >
                   Обновить ссылку
@@ -519,7 +519,7 @@ export function WishlistView({
               onClick={() => deleteWishlist()}
               disabled={!online}
               title={!online ? "Нет соединения" : undefined}
-              className="pixel-font text-xs text-[#666] underline underline-offset-4 leading-normal md:text-sm"
+              className="pixel-font text-[10px] text-[#666] underline underline-offset-4 leading-normal md:text-xs"
             >
               Удалить вишлист
             </button>

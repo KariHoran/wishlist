@@ -1,13 +1,11 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/Navbar";
-import { ProgressBar } from "@/components/ProgressBar";
 import { wishlistProgress } from "@/lib/money";
 import { CreateWishlistButton } from "@/components/CreateWishlistButton";
 import { DecorImage } from "@/components/DecorImage";
-import { RetroInlineState } from "@/components/RetroState";
+import { DashboardWishlistGrid } from "@/components/DashboardWishlistGrid";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -96,36 +94,15 @@ export default async function DashboardPage() {
           <StatCard icon="📄" title="Всего предметов" value={String(totalItems)} />
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {wishlists.map((w) => (
-            <article key={w.id} className="hard-border relative z-10 flex flex-col bg-white p-4">
-              <h2 className="pixel-font text-base leading-relaxed">{w.title}</h2>
-              <p className="mono-font mt-1 text-lg text-[#555]">
-                {w.deadline
-                  ? new Date(w.deadline).toLocaleDateString("sv-SE").replace(/-/g, ".")
-                  : "Бессрочно"}
-              </p>
-              <div className="mt-3">
-                <ProgressBar percent={w.progress.percent} height={14} />
-              </div>
-              <p className="mono-font mt-2 mb-4 text-base">
-                {w.progress.percent}% собрано · {w.items.length} предметов
-              </p>
-              <Link href={`/wishlist/${w.id}`} className="btn-primary mt-auto w-full">
-                Открыть
-              </Link>
-            </article>
-          ))}
-        </div>
-
-        {wishlists.length === 0 && (
-          <div className="mt-8">
-            <RetroInlineState
-              title="Пока пусто"
-              message="У вас пока нет вишлистов — создайте первый."
-            />
-          </div>
-        )}
+        <DashboardWishlistGrid
+          wishlists={wishlists.map((w) => ({
+            id: w.id,
+            title: w.title,
+            deadline: w.deadline?.toISOString() ?? null,
+            progressPercent: w.progress.percent,
+            itemCount: w.items.length,
+          }))}
+        />
       </main>
     </div>
   );
