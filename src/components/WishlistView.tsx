@@ -649,14 +649,6 @@ export function WishlistView({
           })}
         </div>
       )}
-      {visibleItems.length === 0 && (
-        <div className="mt-8">
-          <RetroInlineState
-            title="Пустой вишлист"
-            message="Здесь пока нет предметов. Добавьте первый подарок."
-          />
-        </div>
-      )}
 
       {isOwner && (
         <div className="mt-10 flex justify-center">
