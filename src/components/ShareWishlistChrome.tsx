@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import { Navbar } from "@/components/Navbar";
 import { WishlistView, type ClientItem } from "@/components/WishlistView";
 import { PublicListBadge } from "@/components/WinDecor";
+import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 
 type Props = {
   shareToken: string;
@@ -14,6 +16,7 @@ type Props = {
     emoji: string | null;
     isPublic: boolean;
     ownerId: string;
+    currency: string;
     deadline: string | null;
   };
   items: ClientItem[];
@@ -25,6 +28,7 @@ type Props = {
  */
 export function ShareWishlistChrome({ shareToken, wishlist, items }: Props) {
   const { data: session } = useSession();
+  const t = useTranslations("wishlist");
   const currentUserId = session?.user?.id;
   const isOwner = Boolean(currentUserId && currentUserId === wishlist.ownerId);
 
@@ -36,13 +40,14 @@ export function ShareWishlistChrome({ shareToken, wishlist, items }: Props) {
           displayName={session?.user?.name}
         />
       ) : (
-        <header className="px-4 py-3 md:px-8">
+        <header className="flex items-center justify-between gap-4 px-4 py-3 md:px-8">
           <Link
             href={`/register?redirect=/w/${shareToken}`}
             className="pixel-font text-sm underline underline-offset-4 leading-normal"
           >
-            Зарегистрироваться / Войти
+            {t("guestAuthCta")}
           </Link>
+          <LocaleSwitcher />
         </header>
       )}
       {!isOwner && <PublicListBadge />}

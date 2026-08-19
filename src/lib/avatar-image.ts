@@ -32,7 +32,7 @@ async function compressToJpeg(
     const blob = await new Promise<Blob | null>((resolve) =>
       canvas.toBlob(resolve, "image/jpeg", quality),
     );
-    if (!blob) throw new Error("Не удалось сжать изображение");
+    if (!blob) throw new Error("Could not compress image");
     return blob;
   } finally {
     bitmap.close();
@@ -51,7 +51,7 @@ export function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("Не удалось прочитать файл"));
+    reader.onerror = () => reject(new Error("Could not read file"));
     reader.readAsDataURL(blob);
   });
 }

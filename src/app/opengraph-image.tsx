@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { getRequestLocale, tSync } from "@/lib/i18n-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -7,6 +8,10 @@ export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function Image() {
+  const locale = await getRequestLocale();
+  const welcome = tSync("og", "welcome", locale);
+  const tagline = tSync("og", "tagline", locale);
+
   const silkscreenData = await fetch(
     "https://fonts.gstatic.com/s/silkscreen/v6/m8JXjfVPf62XiF7kO-i9ULQ.ttf",
   ).then((r) => r.arrayBuffer());
@@ -97,7 +102,7 @@ export default async function Image() {
               display: "flex",
             }}
           >
-            Welcome back!
+            {welcome}
           </div>
           <div
             style={{
@@ -108,7 +113,7 @@ export default async function Image() {
               display: "flex",
             }}
           >
-            Let&apos;s check your wishes ✦
+            {tagline}
           </div>
         </div>
       </div>

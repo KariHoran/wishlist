@@ -1,10 +1,11 @@
 import { auth } from "@/lib/auth";
 import { subscribeUserNotifications } from "@/lib/realtime";
+import { tError } from "@/lib/i18n-server";
 
 export async function GET(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
-    return new Response("Unauthorized", { status: 401 });
+    return new Response(await tError("unauthorized"), { status: 401 });
   }
 
   const userId = session.user.id;

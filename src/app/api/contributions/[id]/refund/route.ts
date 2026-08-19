@@ -3,6 +3,8 @@ import * as Sentry from "@sentry/nextjs";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notifications";
+import { jsonError } from "@/lib/api-response";
+import { parseCurrency } from "@/i18n/config";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -10,7 +12,7 @@ export async function PATCH(_req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonError("unauthorized", 401);
   }
 
   Sentry.setUser({ id: session.user.id });
@@ -30,22 +32,22 @@ export async function PATCH(_req: Request, ctx: Ctx) {
   });
 
   if (!contribution) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return jsonError("notFound", 404);
   }
 
   Sentry.setTag("itemId", contribution.item.id);
   Sentry.setTag("wishlistId", contribution.item.wishlist.id);
 
   if (contribution.item.wishlist.ownerId !== session.user.id) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return jsonError("forbidden", 403);
   }
 
   if (contribution.item.status !== "CANCELLED") {
-    return NextResponse.json({ error: "Предмет не отменён" }, { status: 400 });
+    return jsonError("itemNotCancelled", 400);
   }
 
   if (contribution.refunded) {
-    return NextResponse.json({ error: "Уже отмечено" }, { status: 400 });
+    return jsonError("alreadyMarked", 400);
   }
 
   const ownerName = contribution.item.wishlist.owner.displayName;
@@ -77,6 +79,7 @@ export async function PATCH(_req: Request, ctx: Ctx) {
     wishlistId: contribution.item.wishlist.id,
     wishlistTitle: contribution.item.wishlist.title,
     amount: Number(contribution.amount),
+    currency: parseCurrency(contribution.item.wishlist.currency),
     actorName: ownerName,
     contributionId: contribution.id,
     refunded: true,

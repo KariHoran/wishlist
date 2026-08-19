@@ -3,6 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
+import type { NotificationType } from "@prisma/client";
+import { type AppLocale } from "@/i18n/config";
+import { formatDate } from "@/lib/money";
+import {
+  formatNotificationText,
+  type NotificationPayload,
+} from "@/lib/notification-text";
 
 type NotificationRow = {
   id: string;
@@ -10,10 +18,12 @@ type NotificationRow = {
   payload: Record<string, unknown>;
   isRead: boolean;
   createdAt: string;
-  text: string;
 };
 
 export function NotificationBell() {
+  const locale = useLocale() as AppLocale;
+  const t = useTranslations("notifications");
+  const tCommon = useTranslations("common");
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [items, setItems] = useState<NotificationRow[]>([]);
@@ -87,7 +97,7 @@ export function NotificationBell() {
       <span
         className={`pixel-font text-[9px] ${refunded ? "text-green-700" : "text-[#c44]"}`}
       >
-        {refunded ? "Возвращено" : "Ожидает возврата"}
+        {refunded ? t("refunded") : t("refundPending")}
       </span>
     );
   }
@@ -98,7 +108,7 @@ export function NotificationBell() {
         type="button"
         onClick={toggleOpen}
         className="hard-border relative flex h-10 w-10 items-center justify-center bg-white"
-        aria-label="Уведомления"
+        aria-label={t("bellAria")}
       >
         <Image
           src="/decor/envelope.svg"
@@ -118,15 +128,17 @@ export function NotificationBell() {
       {open && (
         <div className="absolute top-12 right-0 z-50 w-[min(320px,calc(100vw-2rem))] border-3 border-black bg-white shadow-[4px_4px_0_#000]">
           <div className="border-b-2 border-black px-3 py-2">
-            <p className="pixel-font text-xs">Уведомления</p>
+            <p className="pixel-font text-xs">{t("title")}</p>
           </div>
           <div className="max-h-80 overflow-y-auto no-scrollbar">
             {loading && (
-              <p className="mono-font p-4 text-center text-base text-[#888]">...</p>
+              <p className="mono-font p-4 text-center text-base text-[#888]">
+                {tCommon("loading")}
+              </p>
             )}
             {!loading && items.length === 0 && (
               <p className="mono-font p-4 text-center text-base text-[#888]">
-                Пока пусто
+                {t("emptyBell")}
               </p>
             )}
             {!loading &&
@@ -135,10 +147,16 @@ export function NotificationBell() {
                   key={n.id}
                   className={`border-b border-[#ddd] px-3 py-3 ${!n.isRead ? "bg-[#fff8fb]" : ""}`}
                 >
-                  <p className="mono-font text-base leading-snug">{n.text}</p>
+                  <p className="mono-font text-base leading-snug">
+                    {formatNotificationText(
+                      n.type as NotificationType,
+                      n.payload as NotificationPayload,
+                      locale,
+                    )}
+                  </p>
                   <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
                     <span className="mono-font text-sm text-[#999]">
-                      {new Date(n.createdAt).toLocaleString("ru-RU", {
+                      {formatDate(n.createdAt, locale, {
                         day: "2-digit",
                         month: "2-digit",
                         hour: "2-digit",
@@ -156,7 +174,7 @@ export function NotificationBell() {
               className="pixel-font block text-center text-[10px] underline"
               onClick={() => setOpen(false)}
             >
-              Все уведомления
+              {t("all")}
             </Link>
           </div>
         </div>

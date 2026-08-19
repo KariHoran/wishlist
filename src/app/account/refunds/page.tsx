@@ -1,14 +1,19 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/Navbar";
 import { RefundsList } from "@/components/RefundsList";
-import { formatRub } from "@/lib/money";
+import { formatCurrency } from "@/lib/money";
+import { parseCurrency, type AppLocale } from "@/i18n/config";
 
 export default async function RefundsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
+
+  const locale = (await getLocale()) as AppLocale;
+  const t = await getTranslations("refunds");
 
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (!user) redirect("/login");
@@ -27,7 +32,7 @@ export default async function RefundsPage() {
         select: {
           id: true,
           name: true,
-          wishlist: { select: { title: true } },
+          wishlist: { select: { title: true, currency: true } },
         },
       },
     },
@@ -58,11 +63,12 @@ export default async function RefundsPage() {
         rows: [],
       });
     }
+    const currency = parseCurrency(c.item.wishlist.currency);
     byItem.get(c.item.id)!.rows.push({
       id: c.id,
       displayName: c.user.displayName,
       handle: c.user.handle,
-      amountFormatted: formatRub(Number(c.amount)),
+      amountFormatted: formatCurrency(Number(c.amount), currency, locale),
     });
   }
 
@@ -74,12 +80,10 @@ export default async function RefundsPage() {
           href="/account"
           className="pixel-font text-xs underline underline-offset-4 leading-normal"
         >
-          ← Аккаунт
+          {t("backToAccount")}
         </Link>
-        <h1 className="display-font mt-4 mb-2 text-2xl">Возвраты</h1>
-        <p className="mono-font text-lg text-[#666]">
-          Переводы делаете сами — здесь только журнал, кому и сколько нужно вернуть
-        </p>
+        <h1 className="display-font mt-4 mb-2 text-2xl">{t("title")}</h1>
+        <p className="mono-font text-lg text-[#666]">{t("intro")}</p>
         <RefundsList groups={Array.from(byItem.values())} />
       </main>
     </div>

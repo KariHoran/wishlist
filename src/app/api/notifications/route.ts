@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { formatNotificationText } from "@/lib/notifications";
+import { formatNotificationText } from "@/lib/notification-text";
+import { getUserLocale } from "@/lib/notifications";
+import { jsonError } from "@/lib/api-response";
 
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonError("unauthorized", 401);
   }
+
+  const locale = await getUserLocale(session.user.id);
 
   const [notifications, unreadCount] = await Promise.all([
     prisma.notification.findMany({
@@ -31,6 +35,7 @@ export async function GET() {
       text: formatNotificationText(
         n.type,
         n.payload as Parameters<typeof formatNotificationText>[1],
+        locale,
       ),
     })),
   });
@@ -39,7 +44,7 @@ export async function GET() {
 export async function PATCH(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonError("unauthorized", 401);
   }
 
   const body = await req.json().catch(() => ({}));

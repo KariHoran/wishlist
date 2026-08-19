@@ -1,11 +1,18 @@
 import { Item, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { publishUserNotification, publishWishlistUpdate } from "@/lib/realtime";
-import { emailCancelledRefundDue, getUserEmailIfEnabled } from "@/lib/email";
+import { emailCancelledRefundDue, getUserEmailAndLocale } from "@/lib/email";
+import { parseCurrency } from "@/i18n/config";
 
 type ItemWithContributions = Item & {
   contributions: { id: string; userId: string; amount: Prisma.Decimal }[];
-  wishlist: { id: string; title: string; ownerId: string; owner: { displayName: string } };
+  wishlist: {
+    id: string;
+    title: string;
+    ownerId: string;
+    currency: string;
+    owner: { displayName: string };
+  };
 };
 
 export function hasPendingRefunds(item: {
@@ -78,6 +85,7 @@ export async function cancelItemWithRefunds(item: ItemWithContributions) {
             wishlistId: item.wishlist.id,
             wishlistTitle: item.wishlist.title,
             amount: Number(c.amount),
+            currency: parseCurrency(item.wishlist.currency),
             actorName: ownerName,
             contributionId: c.id,
             refunded: false,
@@ -91,13 +99,16 @@ export async function cancelItemWithRefunds(item: ItemWithContributions) {
   for (const c of item.contributions) {
     await publishUserNotification(c.userId);
     // Fire-and-forget email about refund due
-    void getUserEmailIfEnabled(c.userId).then((email) => {
-      if (email) {
+    void getUserEmailAndLocale(c.userId).then((recipient) => {
+      if (recipient) {
         emailCancelledRefundDue({
-          to: email,
+          userId: c.userId,
+          locale: recipient.locale,
+          to: recipient.email,
           itemName: item.name,
           wishlistTitle: item.wishlist.title,
           amount: Number(c.amount),
+          currency: parseCurrency(item.wishlist.currency),
         });
       }
     });

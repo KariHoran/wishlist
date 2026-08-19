@@ -1,15 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { DecorImage } from "@/components/DecorImage";
 
 type Variant = "error" | "empty" | "offline";
-
-const variantTitle: Record<Variant, string> = {
-  error: "500",
-  empty: "Пусто",
-  offline: "Оффлайн",
-};
 
 export function RetroStatePage({
   title,
@@ -26,6 +21,13 @@ export function RetroStatePage({
   actionHref?: string;
   onAction?: () => void;
 }) {
+  const t = useTranslations("empty");
+  const variantTitle: Record<Variant, string> = {
+    error: t("serverErrorTitle"),
+    empty: t("blank"),
+    offline: t("offline"),
+  };
+
   return (
     <div
       className="page-frame relative isolate overflow-hidden text-white"

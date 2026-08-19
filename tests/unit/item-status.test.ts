@@ -33,7 +33,7 @@ describe("item status transitions", () => {
     const r = validateReserve({ status: "RESERVED" });
     expect(r.ok).toBe(false);
     if (!r.ok) {
-      expect(r.error).toContain("забронирован");
+      expect(r.errorKey).toBe("alreadyReserved");
       expect(r.statusCode).toBe(409);
     }
   });

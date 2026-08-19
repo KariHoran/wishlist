@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useNetwork } from "@/components/NetworkProvider";
 import { RetroInlineState } from "@/components/RetroState";
 
@@ -20,6 +21,9 @@ type RefundGroup = {
 export function RefundsList({ groups }: { groups: RefundGroup[] }) {
   const router = useRouter();
   const { online, requireOnline } = useNetwork();
+  const t = useTranslations("refunds");
+  const tCommon = useTranslations("common");
+  const tErrors = useTranslations("errors");
   const [busy, setBusy] = useState<string | null>(null);
 
   async function markRefunded(contributionId: string) {
@@ -31,7 +35,7 @@ export function RefundsList({ groups }: { groups: RefundGroup[] }) {
     setBusy(null);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      alert(data.error ?? "Ошибка");
+      alert(data.error ?? tErrors("generic"));
       return;
     }
     router.refresh();
@@ -40,10 +44,7 @@ export function RefundsList({ groups }: { groups: RefundGroup[] }) {
   if (groups.length === 0) {
     return (
       <div className="mt-6">
-        <RetroInlineState
-          title="Всё возвращено, долгов нет 🎉"
-          message="Здесь появятся взносы, которые нужно вернуть вручную после отмены сбора."
-        />
+        <RetroInlineState title={t("emptyTitle")} message={t("emptyMessage")} />
       </div>
     );
   }
@@ -70,10 +71,10 @@ export function RefundsList({ groups }: { groups: RefundGroup[] }) {
                     type="button"
                     className="btn-primary text-[10px]"
                     disabled={busy === row.id || !online}
-                    title={!online ? "Нет соединения" : undefined}
+                    title={!online ? tCommon("noConnection") : undefined}
                     onClick={() => markRefunded(row.id)}
                   >
-                    {busy === row.id ? "..." : "Отметить как возвращено"}
+                    {busy === row.id ? tCommon("loading") : t("markDone")}
                   </button>
                 </div>
               </li>

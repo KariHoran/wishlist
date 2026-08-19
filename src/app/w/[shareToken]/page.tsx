@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { RetroStatePage } from "@/components/RetroState";
 import { ShareWishlistChrome } from "@/components/ShareWishlistChrome";
 import { getSharedWishlist } from "@/lib/shared-wishlist";
@@ -26,22 +27,31 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { shareToken } = await params;
   const wishlist = await getSharedWishlist(shareToken);
+  const tMeta = await getTranslations("meta");
+  const tWishlist = await getTranslations("wishlist");
 
   if (!wishlist || !wishlist.isPublic) {
-    return { title: "✦ Wishlist", description: "Этот список сейчас недоступен" };
+    return {
+      title: tMeta("title"),
+      description: tWishlist("shareUnavailableTitle"),
+    };
   }
 
   const { percent, collected } = wishlistProgress(wishlist.items);
   return {
-    title: `${wishlist.emoji ?? "💖"} ${wishlist.title} — ✦ Wishlist`,
-    description: `Собрано ${percent}% • ${collected}/${wishlist.itemCount} предметов`,
+    title: `${wishlist.emoji ?? "💖"} ${wishlist.title} — ${tMeta("title")}`,
+    description: tWishlist("shareMetaCollected", {
+      percent,
+      collected,
+      total: wishlist.itemCount,
+    }),
   };
 }
 
 export default async function SharedWishlistPage({ params }: Props) {
   const { shareToken } = await params;
-  // Single cached DB read (shared with generateMetadata via unstable_cache).
-  // No auth()/cookies() here — keeps the route statically cacheable for guests.
+  const tWishlist = await getTranslations("wishlist");
+  const tCommon = await getTranslations("common");
   const wishlist = await getSharedWishlist(shareToken);
 
   if (!wishlist) {
@@ -49,9 +59,9 @@ export default async function SharedWishlistPage({ params }: Props) {
       <RetroStatePage
         title="404"
         variant="empty"
-        message="Этот список не найден или ссылка устарела"
+        message={tWishlist("shareNotFound")}
         actionHref="/"
-        actionLabel="На главную"
+        actionLabel={tCommon("home")}
       />
     );
   }
@@ -61,9 +71,9 @@ export default async function SharedWishlistPage({ params }: Props) {
       <RetroStatePage
         title="🔒"
         variant="empty"
-        message="Этот список сейчас недоступен. Владелец закрыл доступ."
+        message={tWishlist("sharePrivate")}
         actionHref="/"
-        actionLabel="На главную"
+        actionLabel={tCommon("home")}
       />
     );
   }
@@ -78,6 +88,7 @@ export default async function SharedWishlistPage({ params }: Props) {
           emoji: wishlist.emoji,
           isPublic: wishlist.isPublic,
           ownerId: wishlist.ownerId,
+          currency: wishlist.currency,
           deadline: wishlist.deadline,
         }}
         items={wishlist.items}

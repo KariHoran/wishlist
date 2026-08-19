@@ -25,7 +25,8 @@ describe("rate limiter (memory fallback)", () => {
     expect(blocked.ok).toBe(false);
     if (!blocked.ok) {
       expect(blocked.status).toBe(429);
-      expect(blocked.body.error).toContain("Слишком много");
+      expect(blocked.errorKey).toBe("tooManyAttempts");
+      expect(blocked.body.error).toBeTruthy();
       expect(blocked.retryAfterSeconds).toBeGreaterThan(0);
     }
   });

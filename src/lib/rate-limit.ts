@@ -1,10 +1,13 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import type { Duration } from "@upstash/ratelimit";
+import { LOCALE_COOKIE, defaultLocale, parseLocale } from "@/i18n/config";
+import { loadMessagesSync } from "@/i18n/load-messages";
 
 type Bucket = { count: number; resetAt: number };
 
-const FALLBACK_MESSAGE = "Слишком много попыток, попробуйте через несколько минут";
+export const RATE_LIMIT_ERROR_KEY = "tooManyAttempts";
+
 const memoryBuckets = new Map<string, Bucket>();
 
 function parseWindow(windowMs: number): Duration {
@@ -39,12 +42,30 @@ type LimitConfig = {
   keyPrefix: string;
   limit: number;
   windowMs: number;
-  message?: string;
 };
 
 export type LimitResult =
   | { ok: true }
-  | { ok: false; status: number; body: { error: string }; retryAfterSeconds: number };
+  | {
+      ok: false;
+      status: number;
+      errorKey: string;
+      retryAfterSeconds: number;
+      body: { error: string };
+    };
+
+async function rateLimitErrorText(): Promise<string> {
+  let locale = defaultLocale;
+  try {
+    const { cookies } = await import("next/headers");
+    const store = await cookies();
+    locale = parseLocale(store.get(LOCALE_COOKIE)?.value ?? defaultLocale);
+  } catch {
+    // tests / cron have no request cookies
+  }
+  const messages = loadMessagesSync(locale) as { errors?: Record<string, string> };
+  return messages.errors?.[RATE_LIMIT_ERROR_KEY] ?? RATE_LIMIT_ERROR_KEY;
+}
 
 const redis =
   process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
@@ -69,7 +90,6 @@ function getRatelimit(config: LimitConfig) {
 
 export async function enforceRateLimit(config: LimitConfig, subject: string): Promise<LimitResult> {
   const key = `${config.keyPrefix}:${subject}`;
-  const message = config.message ?? FALLBACK_MESSAGE;
 
   if (!redis) {
     const result = memoryLimit(key, config.limit, config.windowMs);
@@ -77,8 +97,9 @@ export async function enforceRateLimit(config: LimitConfig, subject: string): Pr
     return {
       ok: false,
       status: 429,
-      body: { error: message },
+      errorKey: RATE_LIMIT_ERROR_KEY,
       retryAfterSeconds: Math.max(1, Math.ceil((result.reset - Date.now()) / 1000)),
+      body: { error: await rateLimitErrorText() },
     };
   }
 
@@ -87,13 +108,15 @@ export async function enforceRateLimit(config: LimitConfig, subject: string): Pr
   return {
     ok: false,
     status: 429,
-    body: { error: message },
+    errorKey: RATE_LIMIT_ERROR_KEY,
     retryAfterSeconds: Math.max(1, Math.ceil((result.reset - Date.now()) / 1000)),
+    body: { error: await rateLimitErrorText() },
   };
 }
 
 export const RATE_LIMITS = {
   auth: { keyPrefix: "auth", limit: 5, windowMs: 5 * 60 * 1000 },
+  authIp: { keyPrefix: "auth-ip", limit: 40, windowMs: 5 * 60 * 1000 },
   reserveOrContribute: {
     keyPrefix: "item-action",
     limit: 20,

@@ -3,15 +3,15 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword, slugifyHandle } from "@/lib/password";
 import { enforceRateLimit, getRequestIp, RATE_LIMITS } from "@/lib/rate-limit";
 import { captureRouteError } from "@/lib/sentry-report";
+import { jsonError } from "@/lib/api-response";
 
 export async function POST(req: Request) {
   try {
     const limit = await enforceRateLimit(RATE_LIMITS.auth, getRequestIp(req));
     if (!limit.ok) {
-      return NextResponse.json(limit.body, {
-        status: limit.status,
-        headers: { "Retry-After": String(limit.retryAfterSeconds) },
-      });
+      const res = await jsonError(limit.errorKey, limit.status);
+      res.headers.set("Retry-After", String(limit.retryAfterSeconds));
+      return res;
     }
 
     const body = await req.json();
@@ -23,21 +23,18 @@ export async function POST(req: Request) {
     const displayName = String(body.displayName ?? "").trim() || email.split("@")[0];
 
     if (!email || !password) {
-      return NextResponse.json({ error: "Заполните email и пароль" }, { status: 400 });
+      return jsonError("fillEmailPassword", 400);
     }
     if (password.length < 6) {
-      return NextResponse.json(
-        { error: "Пароль должен быть не короче 6 символов" },
-        { status: 400 },
-      );
+      return jsonError("passwordTooShort", 400);
     }
     if (password !== passwordConfirm) {
-      return NextResponse.json({ error: "Пароли не совпадают" }, { status: 400 });
+      return jsonError("passwordsMismatch", 400);
     }
 
     const exists = await prisma.user.findUnique({ where: { email } });
     if (exists) {
-      return NextResponse.json({ error: "Email уже зарегистрирован" }, { status: 409 });
+      return jsonError("emailTaken", 409);
     }
 
     let handle = slugifyHandle(displayName) || `user${Date.now().toString(36)}`;
@@ -57,6 +54,6 @@ export async function POST(req: Request) {
       contextKey: "register",
     });
     console.error(e);
-    return NextResponse.json({ error: "Ошибка регистрации" }, { status: 500 });
+    return jsonError("registerFailed", 500);
   }
 }

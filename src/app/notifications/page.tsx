@@ -2,8 +2,16 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
+import type { NotificationType } from "@prisma/client";
 import { Navbar } from "@/components/Navbar";
 import { RetroInlineState, RetroStatePage } from "@/components/RetroState";
+import { type AppLocale } from "@/i18n/config";
+import { formatDate } from "@/lib/money";
+import {
+  formatNotificationText,
+  type NotificationPayload,
+} from "@/lib/notification-text";
 
 type NotificationRow = {
   id: string;
@@ -11,10 +19,13 @@ type NotificationRow = {
   payload: Record<string, unknown>;
   isRead: boolean;
   createdAt: string;
-  text: string;
 };
 
 export default function NotificationsPage() {
+  const locale = useLocale() as AppLocale;
+  const t = useTranslations("notifications");
+  const tCommon = useTranslations("common");
+  const tEmpty = useTranslations("empty");
   const [items, setItems] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -22,7 +33,7 @@ export default function NotificationsPage() {
   const load = useCallback(async () => {
     const res = await fetch("/api/notifications");
     if (!res.ok) {
-      setLoadError("Не удалось загрузить уведомления");
+      setLoadError(t("loadFailed"));
       setLoading(false);
       return;
     }
@@ -35,7 +46,7 @@ export default function NotificationsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ markAll: true }),
     });
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0);
@@ -57,10 +68,10 @@ export default function NotificationsPage() {
   if (loadError) {
     return (
       <RetroStatePage
-        title="500"
+        title={tEmpty("serverErrorTitle")}
         variant="error"
         message={loadError}
-        actionLabel="Попробовать снова"
+        actionLabel={tCommon("tryAgain")}
         onAction={() => window.location.reload()}
       />
     );
@@ -74,23 +85,26 @@ export default function NotificationsPage() {
           href="/dashboard"
           className="pixel-font text-xs underline underline-offset-4 leading-normal"
         >
-          ← Назад
+          {t("back")}
         </Link>
-        <h1 className="display-font mt-4 mb-6 text-2xl">Уведомления</h1>
-        {loading && <p className="mono-font text-lg">...</p>}
+        <h1 className="display-font mt-4 mb-6 text-2xl">{t("title")}</h1>
+        {loading && <p className="mono-font text-lg">{tCommon("loading")}</p>}
         {!loading && items.length === 0 && (
-          <RetroInlineState
-            title="Уведомлений пока нет"
-            message="Когда появятся новые события, они отобразятся здесь."
-          />
+          <RetroInlineState title={t("emptyPageTitle")} message={t("emptyPageMessage")} />
         )}
         <ul className="space-y-3">
           {items.map((n) => (
             <li key={n.id} className="hard-border bg-white p-4">
-              <p className="mono-font text-lg leading-snug">{n.text}</p>
+              <p className="mono-font text-lg leading-snug">
+                {formatNotificationText(
+                  n.type as NotificationType,
+                  n.payload as NotificationPayload,
+                  locale,
+                )}
+              </p>
               <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                 <span className="mono-font text-sm text-[#999]">
-                  {new Date(n.createdAt).toLocaleString("ru-RU")}
+                  {formatDate(n.createdAt, locale)}
                 </span>
                 {n.type === "ITEM_CANCELLED_REFUND_DUE" && (
                   <span
@@ -98,7 +112,7 @@ export default function NotificationsPage() {
                       n.payload.refunded === true ? "text-green-700" : "text-[#c44]"
                     }`}
                   >
-                    {n.payload.refunded === true ? "Возвращено" : "Ожидает возврата"}
+                    {n.payload.refunded === true ? t("refunded") : t("refundPending")}
                   </span>
                 )}
               </div>

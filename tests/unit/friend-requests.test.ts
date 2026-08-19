@@ -14,7 +14,7 @@ describe("friend request validation", () => {
     const r = validateFriendRequestSend({ ...base, friendId: "user-a" });
     expect(r.ok).toBe(false);
     if (!r.ok) {
-      expect(r.error).toContain("себя");
+      expect(r.errorKey).toBe("cannotAddSelf");
       expect(r.statusCode).toBe(400);
     }
   });

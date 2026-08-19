@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/Navbar";
@@ -6,10 +7,13 @@ import { wishlistProgress } from "@/lib/money";
 import { CreateWishlistButton } from "@/components/CreateWishlistButton";
 import { DecorImage } from "@/components/DecorImage";
 import { DashboardWishlistGrid } from "@/components/DashboardWishlistGrid";
+import { parseCurrency } from "@/i18n/config";
 
 export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
+
+  const t = await getTranslations("dashboard");
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -36,7 +40,6 @@ export default async function DashboardPage() {
 
   return (
     <div className="page-frame grid-bg relative isolate">
-      {/* Sticker sits in the title band only — bottom must stay above stats cards */}
       <DecorImage
         src="/decor/cat-halftone-face.png"
         width={72}
@@ -84,14 +87,14 @@ export default async function DashboardPage() {
 
       <main className="relative z-10 mx-auto max-w-6xl px-4 py-6 md:px-8">
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-          <h1 className="display-font text-2xl md:text-3xl">Мои вишлисты</h1>
+          <h1 className="display-font text-2xl md:text-3xl">{t("title")}</h1>
           <CreateWishlistButton />
         </div>
 
         <div className="relative z-10 mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <StatCard icon="📁" title="Всего вишлистов" value={String(wishlists.length)} />
-          <StatCard icon="⏳" title="Собрано" value={`${collectedPct}%`} />
-          <StatCard icon="📄" title="Всего предметов" value={String(totalItems)} />
+          <StatCard icon="📁" title={t("statWishlists")} value={String(wishlists.length)} />
+          <StatCard icon="⏳" title={t("statCollected")} value={`${collectedPct}%`} />
+          <StatCard icon="📄" title={t("statItems")} value={String(totalItems)} />
         </div>
 
         <DashboardWishlistGrid
@@ -101,6 +104,7 @@ export default async function DashboardPage() {
             deadline: w.deadline?.toISOString() ?? null,
             progressPercent: w.progress.percent,
             itemCount: w.items.length,
+            currency: parseCurrency(w.currency),
           }))}
         />
       </main>

@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useTranslations } from "next-intl";
 
 /** Browser-only online status. Initial true avoids SSR/client hydration mismatch;
  * real navigator.onLine is applied in useEffect after mount. */
@@ -24,8 +25,6 @@ export function useOnlineStatus() {
     window.addEventListener("online", goOnline);
     window.addEventListener("offline", goOffline);
 
-    // DevTools → Network → Offline sometimes updates navigator.onLine
-    // without a reliable event in all embeds — poll as a fallback.
     const poll = window.setInterval(() => {
       setIsOnline(navigator.onLine);
     }, 500);
@@ -57,19 +56,18 @@ export function useNetwork() {
 }
 
 export function OfflineBanner({ visible }: { visible: boolean }) {
+  const t = useTranslations("network");
   if (!visible) return null;
   return (
     <div className="offline-banner" role="status" aria-live="assertive">
       <span aria-hidden>⚠</span>
-      <span>
-        Нет соединения — уже открытые страницы доступны из кэша; изменения не
-        сохранятся, пока не появится интернет
-      </span>
+      <span>{t("banner")}</span>
     </div>
   );
 }
 
 export function NetworkProvider({ children }: { children: ReactNode }) {
+  const t = useTranslations("network");
   const online = useOnlineStatus();
   const wasOffline = useRef(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -80,11 +78,10 @@ export function NetworkProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!toast) return;
-    const t = window.setTimeout(() => setToast(null), 2500);
-    return () => window.clearTimeout(t);
+    const timer = window.setTimeout(() => setToast(null), 2500);
+    return () => window.clearTimeout(timer);
   }, [toast]);
 
-  // Toast only when recovering from a known offline stretch (skip first mount)
   useEffect(() => {
     if (!online) {
       wasOffline.current = true;
@@ -94,9 +91,9 @@ export function NetworkProvider({ children }: { children: ReactNode }) {
     document.body.classList.remove("is-offline");
     if (wasOffline.current) {
       wasOffline.current = false;
-      setToast("Соединение восстановлено");
+      setToast(t("restored"));
     }
-  }, [online]);
+  }, [online, t]);
 
   useEffect(() => {
     return () => document.body.classList.remove("is-offline");
@@ -104,15 +101,12 @@ export function NetworkProvider({ children }: { children: ReactNode }) {
 
   const requireOnline = useCallback(() => {
     if (typeof navigator !== "undefined" && navigator.onLine) return true;
-    setToast(
-      "Нет соединения — изменения не сохранятся, пока не появится интернет",
-    );
+    setToast(t("blocked"));
     return false;
-  }, []);
+  }, [t]);
 
   return (
     <NetworkContext.Provider value={{ online, requireOnline, showToast }}>
-      {/* Global banner — rendered from layout via Providers, all pages */}
       <OfflineBanner visible={!online} />
       {children}
       {toast && (

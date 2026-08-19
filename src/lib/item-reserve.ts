@@ -3,7 +3,7 @@ import { validateReserve } from "@/lib/item-status";
 
 export type ReserveResult =
   | { ok: true; itemId: string }
-  | { ok: false; error: string; statusCode: number };
+  | { ok: false; errorKey: string; statusCode: number; errorParams?: Record<string, string> };
 
 /**
  * Atomically reserve an AVAILABLE item.
@@ -31,7 +31,8 @@ export async function reserveItemAtomic(
   if (!validation.ok) {
     return {
       ok: false,
-      error: validation.error,
+      errorKey: validation.errorKey,
+      errorParams: validation.errorParams,
       statusCode: validation.statusCode,
     };
   }
@@ -47,7 +48,7 @@ export async function reserveItemAtomic(
   });
 
   if (updated.count === 0) {
-    return { ok: false, error: "Уже забронировано", statusCode: 409 };
+    return { ok: false, errorKey: "alreadyReserved", statusCode: 409 };
   }
 
   return { ok: true, itemId: params.itemId };

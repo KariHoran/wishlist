@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { FormEvent, Suspense, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Logo } from "@/components/Logo";
 import { PasswordInput } from "@/components/PasswordInput";
 import { DecorImage } from "@/components/DecorImage";
@@ -14,6 +15,8 @@ const LOGIN_TIMEOUT_MS = 10_000;
 function LoginForm() {
   const search = useSearchParams();
   const { online, requireOnline } = useNetwork();
+  const t = useTranslations("auth");
+  const tCommon = useTranslations("common");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -45,10 +48,9 @@ function LoginForm() {
         | string
         | undefined;
 
-      // Auth.js may return { error, ok, url } or (in some betas) a URL string
       if (typeof signInResult === "string") {
         if (signInResult.includes("error=")) {
-          setError("Неверный email или пароль");
+          setError(t("invalidCredentials"));
           return;
         }
         window.location.assign(signInResult || "/dashboard");
@@ -56,30 +58,40 @@ function LoginForm() {
       }
 
       if (!signInResult) {
-        setError("Не удалось войти, попробуйте снова");
+        setError(t("loginFailed"));
+        return;
+      }
+
+      if ((signInResult as { status?: number }).status === 429) {
+        setError(t("tooManyAttempts"));
         return;
       }
 
       if (signInResult.error || signInResult.ok === false) {
-        setError("Неверный email или пароль");
+        setError(t("invalidCredentials"));
         return;
       }
 
       if (signInResult.url && signInResult.url.includes("error=")) {
-        setError("Неверный email или пароль");
+        setError(t("invalidCredentials"));
         return;
       }
 
-      // remember me: session strategy is JWT; cookie maxAge handled by auth defaults
       void remember;
       const callback = search.get("callbackUrl") || "/dashboard";
-      // Full navigation so middleware sees the new session cookie
       window.location.assign(callback);
     } catch (err) {
       if (err instanceof Error && err.message === "timeout") {
-        setError("Не удалось войти, попробуйте снова");
+        setError(t("loginFailed"));
+      } else if (
+        typeof err === "object" &&
+        err !== null &&
+        "status" in err &&
+        Number((err as { status: unknown }).status) === 429
+      ) {
+        setError(t("tooManyAttempts"));
       } else {
-        setError("Ошибка сети — попробуйте ещё раз");
+        setError(t("networkError"));
       }
     } finally {
       setLoading(false);
@@ -90,26 +102,26 @@ function LoginForm() {
     <form onSubmit={onSubmit} className="hard-border shadow-offset w-full space-y-5 bg-white p-5 md:p-6">
       <div>
         <label htmlFor="email" className="pixel-font mb-2 block text-sm">
-          Email
+          {t("email")}
         </label>
         <input
           id="email"
           name="email"
           type="email"
           required
-          placeholder="Ваша почта"
+          placeholder={t("emailPlaceholder")}
           className="input-field"
           autoComplete="email"
         />
       </div>
       <div>
         <label htmlFor="password" className="pixel-font mb-2 block text-sm">
-          Пароль
+          {t("password")}
         </label>
         <PasswordInput
           id="password"
           name="password"
-          placeholder="Ваш пароль"
+          placeholder={t("passwordPlaceholder")}
           autoComplete="current-password"
           required
         />
@@ -118,28 +130,36 @@ function LoginForm() {
       <div className="flex items-center justify-between gap-3 text-sm">
         <label className="mono-font flex items-center gap-2 text-lg">
           <input type="checkbox" name="remember" className="h-4 w-4 accent-black" />
-          Запомнить меня
+          {t("rememberMe")}
         </label>
-        <span className="pixel-font text-[10px] text-[#aaa]">Забыли пароль?</span>
+        <span className="pixel-font text-[10px] text-[#aaa]">{t("forgotPassword")}</span>
       </div>
 
       {error && <p className="mono-font text-base text-red-600">{error}</p>}
 
-      <button type="submit" disabled={loading || !online} className="btn-primary w-full py-3 text-base" title={!online ? "Нет соединения" : undefined}>
-        {loading ? "..." : "Войти"}
+      <button
+        type="submit"
+        disabled={loading || !online}
+        className="btn-primary w-full py-3 text-base"
+        title={!online ? tCommon("noConnection") : undefined}
+      >
+        {loading ? tCommon("loading") : t("submitLogin")}
       </button>
 
       <p className="mono-font text-center text-lg text-[#777]">
-        Еще нет аккаунта?{" "}
+        {t("noAccount")}{" "}
         <Link href="/register" className="underline underline-offset-4 leading-normal">
-          Регистрация
+          {tCommon("signUp")}
         </Link>
       </p>
     </form>
   );
 }
 
-export default function LoginPage() {
+function LoginPageContent() {
+  const t = useTranslations("auth");
+  const tCommon = useTranslations("common");
+
   return (
     <div className="page-frame grid-bg relative isolate overflow-hidden">
       <DecorImage
@@ -181,13 +201,15 @@ export default function LoginPage() {
 
       <main className="relative z-10 mx-auto flex min-h-[calc(100dvh-10px)] w-full max-w-md flex-col items-center justify-center px-4 py-10">
         <Logo size="lg" href={null} priority />
-        <p className="pixel-font mt-3 mb-8 text-center text-xs md:text-sm">
-          Welcome back! Let&apos;s check your wishes
-        </p>
-        <Suspense fallback={<div className="hard-border shadow-offset w-full p-6">...</div>}>
+        <p className="pixel-font mt-3 mb-8 text-center text-xs md:text-sm">{t("tagline")}</p>
+        <Suspense fallback={<div className="hard-border shadow-offset w-full p-6">{tCommon("loading")}</div>}>
           <LoginForm />
         </Suspense>
       </main>
     </div>
   );
+}
+
+export default function LoginPage() {
+  return <LoginPageContent />;
 }

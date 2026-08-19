@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { emailDeadlineReminder, getUserEmailIfEnabled } from "@/lib/email";
+import { emailDeadlineReminder, getUserEmailAndLocale } from "@/lib/email";
+import { jsonError } from "@/lib/api-response";
+import { formatDate } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +11,7 @@ export async function GET(req: Request) {
   if (secret) {
     const auth = req.headers.get("authorization");
     if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return jsonError("unauthorized", 401);
     }
   }
 
@@ -29,13 +31,26 @@ export async function GET(req: Request) {
   });
 
   let sent = 0;
+  const skipped: string[] = [];
   for (const w of wishlists) {
-    if (!w.owner.emailNotificationsEnabled) continue;
-    const email = await getUserEmailIfEnabled(w.owner.id);
-    if (!email) continue;
-    const deadlineDate = w.deadline!.toLocaleDateString("ru-RU");
+    if (!w.owner.emailNotificationsEnabled) {
+      skipped.push(`${w.id}:notifications-disabled`);
+      continue;
+    }
+    const recipient = await getUserEmailAndLocale(w.owner.id);
+    if (!recipient) {
+      skipped.push(`${w.id}:no-email`);
+      continue;
+    }
+    const deadlineDate = formatDate(w.deadline!, recipient.locale, {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
     emailDeadlineReminder({
-      to: email,
+      userId: w.owner.id,
+      locale: recipient.locale,
+      to: recipient.email,
       wishlistTitle: w.title,
       wishlistId: w.id,
       deadlineDate,
@@ -43,5 +58,11 @@ export async function GET(req: Request) {
     sent++;
   }
 
-  return NextResponse.json({ ok: true, sent });
+  return NextResponse.json({
+    ok: true,
+    sent,
+    matched: wishlists.length,
+    skipped,
+    resendConfigured: Boolean(process.env.RESEND_API_KEY),
+  });
 }

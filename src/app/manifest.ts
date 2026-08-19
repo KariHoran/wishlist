@@ -1,17 +1,22 @@
 import type { MetadataRoute } from "next";
+import { getLocale, getTranslations } from "next-intl/server";
+import { bcp47, type AppLocale } from "@/i18n/config";
 
-export default function manifest(): MetadataRoute.Manifest {
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const locale = (await getLocale()) as AppLocale;
+  const t = await getTranslations("meta");
+
   return {
-    name: "Wishlist",
-    short_name: "Wishlist",
-    description: "Вишлисты с резервированием подарков и складчиной",
+    name: t("applicationName"),
+    short_name: t("applicationName"),
+    description: t("description"),
     start_url: "/",
     scope: "/",
     display: "standalone",
     orientation: "portrait-primary",
     background_color: "#ffffff",
     theme_color: "#000000",
-    lang: "ru",
+    lang: bcp47(locale).split("-")[0],
     categories: ["lifestyle", "social"],
     icons: [
       {

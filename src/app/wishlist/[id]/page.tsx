@@ -1,15 +1,19 @@
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/Navbar";
 import { WishlistView } from "@/components/WishlistView";
 import { PublicListBadge } from "@/components/WinDecor";
+import { parseCurrency } from "@/i18n/config";
 
 type Props = { params: Promise<{ id: string }> };
 
 export default async function WishlistPage({ params }: Props) {
   const { id } = await params;
   const session = await auth();
+  const tCommon = await getTranslations("common");
+  const anonymousName = tCommon("anonymous");
 
   const wishlist = await prisma.wishlist.findUnique({
     where: { id },
@@ -81,7 +85,7 @@ export default async function WishlistPage({ params }: Props) {
         reservedById: item.reservedById,
         reservedBy: item.reservedBy
           ? item.reservationAnonymous
-            ? { id: item.reservedBy.id, displayName: "Аноним", handle: "anon" }
+            ? { id: item.reservedBy.id, displayName: anonymousName, handle: "anon" }
             : item.reservedBy
           : null,
         contributions: item.contributions.map((c) => ({
@@ -90,7 +94,7 @@ export default async function WishlistPage({ params }: Props) {
           message: c.message,
           isAnonymous: c.isAnonymous,
           user: c.isAnonymous
-            ? { id: c.user.id, displayName: "Аноним", handle: "anon" }
+            ? { id: c.user.id, displayName: anonymousName, handle: "anon" }
             : c.user,
         })),
         contributorCount: item.contributions.length,
@@ -111,6 +115,7 @@ export default async function WishlistPage({ params }: Props) {
             emoji: wishlist.emoji,
             isPublic: wishlist.isPublic,
             ownerId: wishlist.ownerId,
+            currency: parseCurrency(wishlist.currency),
             deadline: wishlist.deadline
               ? wishlist.deadline.toISOString().slice(0, 10)
               : null,

@@ -15,6 +15,7 @@ model User {
   passwordHash             String
   avatarUrl                String?
   emailNotificationsEnabled Boolean        @default(true)
+  locale                   String          @default("ru")
   createdAt                DateTime        @default(now())
   wishlists        Wishlist[]
   friendsA         Friendship[]    @relation("UserA")
@@ -64,6 +65,7 @@ model Wishlist {
   emoji      String?   @default("💖")
   isPublic   Boolean   @default(false)
   deadline   DateTime?
+  currency   String    @default("RUB")
   shareToken String    @unique @default(cuid()) // UNIQUE creates btree index in Postgres
   createdAt  DateTime  @default(now())
   items      Item[]

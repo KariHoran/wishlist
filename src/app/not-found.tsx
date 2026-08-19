@@ -1,13 +1,16 @@
+import { getTranslations } from "next-intl/server";
 import { RetroStatePage } from "@/components/RetroState";
 
-export default function NotFound() {
+export default async function NotFound() {
+  const t = await getTranslations("empty");
+  const tCommon = await getTranslations("common");
   return (
     <RetroStatePage
-      title="404"
+      title={t("notFoundTitle")}
       variant="empty"
-      message="Упс! страница не найдена"
+      message={t("notFound")}
       actionHref="/"
-      actionLabel="Вернуться на главную"
+      actionLabel={tCommon("backToHome")}
     />
   );
 }

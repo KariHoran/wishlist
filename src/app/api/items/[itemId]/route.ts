@@ -26,10 +26,12 @@ import {
   emailItemReserved,
   emailItemContributed,
   emailGoalReached,
-  getUserEmailIfEnabled,
+  getUserEmailAndLocale,
 } from "@/lib/email";
 import * as Sentry from "@sentry/nextjs";
 import { captureRouteError } from "@/lib/sentry-report";
+import { jsonError, translateErrorKey } from "@/lib/api-response";
+import { parseCurrency } from "@/i18n/config";
 
 type Ctx = { params: Promise<{ itemId: string }> };
 
@@ -58,10 +60,10 @@ export async function GET(_req: Request, ctx: Ctx) {
   const { itemId } = await ctx.params;
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonError("unauthorized", 401);
   }
   const item = await getOwnedItem(itemId, session.user.id);
-  if (!item) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!item) return jsonError("forbidden", 403);
 
   if (!hasPendingRefunds(item)) {
     return NextResponse.json({ requiresConfirmation: false });
@@ -79,10 +81,10 @@ export async function DELETE(req: Request, ctx: Ctx) {
   const { itemId } = await ctx.params;
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonError("unauthorized", 401);
   }
   const item = await getOwnedItem(itemId, session.user.id);
-  if (!item) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!item) return jsonError("forbidden", 403);
 
   const body = await req.json().catch(() => ({}));
   const confirm = body.confirm === true;
@@ -119,7 +121,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
   const { itemId } = await ctx.params;
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonError("unauthorized", 401);
   }
   const body = await req.json();
   const action = String(body.action ?? "");
@@ -129,10 +131,9 @@ export async function PATCH(req: Request, ctx: Ctx) {
       session.user.id,
     );
     if (!limit.ok) {
-      return NextResponse.json(limit.body, {
-        status: limit.status,
-        headers: { "Retry-After": String(limit.retryAfterSeconds) },
-      });
+      const res = await jsonError(limit.errorKey, limit.status);
+      res.headers.set("Retry-After", String(limit.retryAfterSeconds));
+      return res;
     }
   }
 
@@ -143,17 +144,17 @@ export async function PATCH(req: Request, ctx: Ctx) {
       contributions: { include: { user: true } },
     },
   });
-  if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!item) return jsonError("notFound", 404);
 
   const isOwner = item.wishlist.ownerId === session.user.id;
   const isGuest = !isOwner;
 
   if (!item.wishlist.isPublic && isGuest) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return jsonError("forbidden", 403);
   }
 
   if (item.status === "CANCELLED") {
-    return NextResponse.json({ error: "Предмет отменён" }, { status: 410 });
+    return jsonError("itemCancelled", 410);
   }
 
   Sentry.setTag("itemId", itemId);
@@ -183,10 +184,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
           : undefined;
 
       if (name !== undefined && !name) {
-        return NextResponse.json({ error: "Название обязательно" }, { status: 400 });
+        return jsonError("nameRequiredShort", 400);
       }
       if (price !== undefined && (!Number.isFinite(price) || price < 0)) {
-        return NextResponse.json({ error: "Некорректная цена" }, { status: 400 });
+        return jsonError("invalidPrice", 400);
       }
 
       const updated = await prisma.item.update({
@@ -205,10 +206,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     if (action === "start_funding" && isOwner) {
       const startCheck = validateStartFunding(item);
       if (!startCheck.ok) {
-        return NextResponse.json(
-          { error: startCheck.error },
-          { status: startCheck.statusCode },
-        );
+        return translateErrorKey(startCheck, startCheck.statusCode);
       }
 
       const mode =
@@ -222,10 +220,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
       if (mode === "FIXED_SPLIT") {
         const n = Number(body.splitParticipants);
         if (!Number.isInteger(n) || n < 2) {
-          return NextResponse.json(
-            { error: "Укажите число участников (от 2)" },
-            { status: 400 },
-          );
+          return jsonError("splitCountInvalid", 400);
         }
         splitParticipants = n;
         splitAmountPerPerson = computeSplitPerPerson(Number(item.price), n);
@@ -278,10 +273,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
         },
       });
       if (!reserveResult.ok) {
-        return NextResponse.json(
-          { error: reserveResult.error },
-          { status: reserveResult.statusCode },
-        );
+        return translateErrorKey(reserveResult, reserveResult.statusCode);
       }
 
       const updated = await prisma.item.findUniqueOrThrow({
@@ -305,10 +297,12 @@ export async function PATCH(req: Request, ctx: Ctx) {
       });
 
       // Fire-and-forget email to wishlist owner (no await — never blocks reserve)
-      void getUserEmailIfEnabled(item.wishlist.ownerId).then((email) => {
-        if (email) {
+      void getUserEmailAndLocale(item.wishlist.ownerId).then((recipient) => {
+        if (recipient) {
           emailItemReserved({
-            to: email,
+            userId: item.wishlist.ownerId,
+            locale: recipient.locale,
+            to: recipient.email,
             itemName: item.name,
             wishlistTitle: item.wishlist.title,
             wishlistId: item.wishlist.id,
@@ -323,10 +317,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     if (action === "unreserve" && isGuest) {
       const unreserveCheck = validateUnreserve(item, session.user.id);
       if (!unreserveCheck.ok) {
-        return NextResponse.json(
-          { error: unreserveCheck.error },
-          { status: unreserveCheck.statusCode },
-        );
+        return translateErrorKey(unreserveCheck, unreserveCheck.statusCode);
       }
       const updated = await prisma.item.update({
         where: { id: itemId },
@@ -344,10 +335,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     if (action === "contribute" && isGuest) {
       const contributeCheck = validateContribute(item);
       if (!contributeCheck.ok) {
-        return NextResponse.json(
-          { error: contributeCheck.error },
-          { status: contributeCheck.statusCode },
-        );
+        return translateErrorKey(contributeCheck, contributeCheck.statusCode);
       }
 
       const activeContributions = item.contributions.filter((c) => !c.refunded);
@@ -363,10 +351,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
           ),
         });
         if (!joinCheck.ok) {
-          return NextResponse.json(
-            { error: joinCheck.error },
-            { status: joinCheck.statusCode },
-          );
+          return translateErrorKey(joinCheck, joinCheck.statusCode);
         }
       }
 
@@ -380,7 +365,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
       } else {
         amount = Number(body.amount);
         if (!amount || amount <= 0) {
-          return NextResponse.json({ error: "Укажите сумму" }, { status: 400 });
+          return jsonError("amountRequired", 400);
         }
       }
 
@@ -389,10 +374,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
       const next = collected.add(amount);
 
       if (!isFixed && next.gt(price)) {
-        return NextResponse.json(
-          { error: "Сумма превышает оставшуюся стоимость" },
-          { status: 400 },
-        );
+        return jsonError("amountExceedsRemaining", 400);
       }
 
       const message = sanitizeMessage(body.message);
@@ -429,25 +411,31 @@ export async function PATCH(req: Request, ctx: Ctx) {
         }),
       ]);
 
+      const wishlistCurrency = parseCurrency(item.wishlist.currency);
+
       await createNotification(item.wishlist.ownerId, "ITEM_CONTRIBUTED", {
         itemId: item.id,
         itemName: item.name,
         wishlistId: item.wishlist.id,
         wishlistTitle: item.wishlist.title,
         amount,
+        currency: wishlistCurrency,
         message: message ?? undefined,
         anonymous,
       });
 
       // Fire-and-forget email to owner about the contribution
-      void getUserEmailIfEnabled(item.wishlist.ownerId).then((email) => {
-        if (email) {
+      void getUserEmailAndLocale(item.wishlist.ownerId).then((recipient) => {
+        if (recipient) {
           emailItemContributed({
-            to: email,
+            userId: item.wishlist.ownerId,
+            locale: recipient.locale,
+            to: recipient.email,
             itemName: item.name,
             wishlistTitle: item.wishlist.title,
             wishlistId: item.wishlist.id,
             amount,
+            currency: wishlistCurrency,
           });
         }
       });
@@ -465,12 +453,15 @@ export async function PATCH(req: Request, ctx: Ctx) {
             wishlistId: item.wishlist.id,
             wishlistTitle: item.wishlist.title,
             amount: Number(item.price),
+            currency: wishlistCurrency,
           });
           // Fire-and-forget email to each participant about goal reached
-          void getUserEmailIfEnabled(uid).then((email) => {
-            if (email) {
+          void getUserEmailAndLocale(uid).then((recipient) => {
+            if (recipient) {
               emailGoalReached({
-                to: email,
+                userId: uid,
+                locale: recipient.locale,
+                to: recipient.email,
                 itemName: item.name,
                 wishlistTitle: item.wishlist.title,
                 wishlistId: item.wishlist.id,
@@ -484,7 +475,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
       return NextResponse.json(updated);
     }
 
-    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+    return jsonError("unknownAction", 400);
   } catch (e) {
     captureRouteError(e, {
       userId: session.user.id,
@@ -497,6 +488,6 @@ export async function PATCH(req: Request, ctx: Ctx) {
       context: { itemId, wishlistId: item.wishlistId, action },
     });
     console.error(e);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return jsonError("serverError", 500);
   }
 }

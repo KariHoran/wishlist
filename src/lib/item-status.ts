@@ -17,7 +17,7 @@ export type ItemSnapshot = {
 
 export type TransitionResult =
   | { ok: true; nextStatus: ItemStatus }
-  | { ok: false; error: string; statusCode: number };
+  | { ok: false; errorKey: string; statusCode: number; errorParams?: Record<string, string> };
 
 const ALLOWED: Record<ItemStatus, ItemStatus[]> = {
   AVAILABLE: ["RESERVED", "FUNDING", "CANCELLED"],
@@ -36,12 +36,13 @@ export function assertTransition(
   to: ItemStatus,
 ): TransitionResult {
   if (from === to && to !== "FUNDING") {
-    return { ok: false, error: "Статус уже установлен", statusCode: 409 };
+    return { ok: false, errorKey: "statusAlreadySet", statusCode: 409 };
   }
   if (!canTransition(from, to)) {
     return {
       ok: false,
-      error: `Недопустимый переход ${from} → ${to}`,
+      errorKey: "invalidTransition",
+      errorParams: { from, to },
       statusCode: 409,
     };
   }
@@ -50,24 +51,24 @@ export function assertTransition(
 
 export function validateReserve(item: ItemSnapshot): TransitionResult {
   if (item.status === "CANCELLED") {
-    return { ok: false, error: "Предмет отменён", statusCode: 410 };
+    return { ok: false, errorKey: "itemCancelled", statusCode: 410 };
   }
   if (item.status === "RESERVED") {
-    return { ok: false, error: "Уже забронировано", statusCode: 409 };
+    return { ok: false, errorKey: "alreadyReserved", statusCode: 409 };
   }
   if (item.status === "FUNDING") {
     const collected = Number(item.amountCollected ?? 0);
     if (collected > 0) {
       return {
         ok: false,
-        error: "Идёт сбор — нельзя забронировать целиком",
+        errorKey: "cannotReserveWhileFunding",
         statusCode: 409,
       };
     }
     if (item.fundingMode === "FIXED_SPLIT") {
       return {
         ok: false,
-        error: "Идёт складчина — нельзя забронировать целиком",
+        errorKey: "cannotReserveWhileSplit",
         statusCode: 409,
       };
     }
@@ -77,10 +78,10 @@ export function validateReserve(item: ItemSnapshot): TransitionResult {
 
 export function validateStartFunding(item: ItemSnapshot): TransitionResult {
   if (item.status === "CANCELLED") {
-    return { ok: false, error: "Предмет отменён", statusCode: 410 };
+    return { ok: false, errorKey: "itemCancelled", statusCode: 410 };
   }
   if (item.status === "RESERVED") {
-    return { ok: false, error: "Сначала нужно снять бронь", statusCode: 409 };
+    return { ok: false, errorKey: "unreserveFirst", statusCode: 409 };
   }
   return assertTransition(item.status === "FUNDING" ? "FUNDING" : item.status, "FUNDING");
 }
@@ -90,17 +91,17 @@ export function validateUnreserve(
   userId: string,
 ): TransitionResult {
   if (item.reservedById !== userId) {
-    return { ok: false, error: "Это не ваша бронь", statusCode: 403 };
+    return { ok: false, errorKey: "notYourReservation", statusCode: 403 };
   }
   return assertTransition("RESERVED", "AVAILABLE");
 }
 
 export function validateContribute(item: ItemSnapshot): TransitionResult {
   if (item.status === "CANCELLED") {
-    return { ok: false, error: "Предмет отменён", statusCode: 410 };
+    return { ok: false, errorKey: "itemCancelled", statusCode: 410 };
   }
   if (item.status === "RESERVED") {
-    return { ok: false, error: "Предмет забронирован", statusCode: 409 };
+    return { ok: false, errorKey: "itemReserved", statusCode: 409 };
   }
   return { ok: true, nextStatus: "FUNDING" };
 }

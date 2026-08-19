@@ -6,6 +6,11 @@ import {
   cancelWishlistPendingItems,
   pendingRefundSummary,
 } from "@/lib/cancellations";
+import { jsonError } from "@/lib/api-response";
+import { isCurrency } from "@/i18n/config";
+import { wishlistHasFinancialActivity } from "@/lib/wishlist-currency";
+import { getRequestLocale } from "@/lib/i18n-server";
+import { loadMessagesSync } from "@/i18n/load-messages";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -30,12 +35,12 @@ export async function GET(_req: Request, ctx: Ctx) {
     },
   });
   if (!wishlist) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return jsonError("notFound", 404);
   }
 
   const isOwner = session?.user?.id === wishlist.ownerId;
   if (!wishlist.isPublic && !isOwner) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return jsonError("forbidden", 403);
   }
 
   if (isOwner) {
@@ -54,21 +59,27 @@ export async function GET(_req: Request, ctx: Ctx) {
 
   const forGuest = {
     ...wishlist,
-    items: wishlist.items.map((item) => ({
-      ...item,
-      reservedBy: item.reservedBy
-        ? item.reservationAnonymous
-          ? { id: item.reservedBy.id, displayName: "Аноним", handle: "anon" }
-          : item.reservedBy
-        : null,
-      contributions: item.contributions.map((c) => ({
-        ...c,
-        user: c.isAnonymous
-          ? { id: c.user.id, displayName: "Аноним", handle: "anon" }
-          : c.user,
-      })),
-      contributorCount: item.contributions.length,
-    })),
+    items: await (async () => {
+      const locale = await getRequestLocale();
+      const messages = loadMessagesSync(locale) as { common?: Record<string, string> };
+      const anonymous = {
+        displayName: messages.common?.anonymous ?? "Anonymous",
+        handle: "anon",
+      };
+      return wishlist.items.map((item) => ({
+        ...item,
+        reservedBy: item.reservedBy
+          ? item.reservationAnonymous
+            ? { id: item.reservedBy.id, ...anonymous }
+            : item.reservedBy
+          : null,
+        contributions: item.contributions.map((c) => ({
+          ...c,
+          user: c.isAnonymous ? { id: c.user.id, ...anonymous } : c.user,
+        })),
+        contributorCount: item.contributions.length,
+      }));
+    })(),
   };
 
   return NextResponse.json({ wishlist: forGuest, viewerRole: "guest" });
@@ -78,7 +89,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonError("unauthorized", 401);
   }
   const wishlist = await prisma.wishlist.findUnique({
     where: { id },
@@ -87,13 +98,22 @@ export async function PATCH(req: Request, ctx: Ctx) {
     },
   });
   if (!wishlist || wishlist.ownerId !== session.user.id) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return jsonError("forbidden", 403);
   }
 
   const body = await req.json();
   const confirm = body.confirm === true;
   const makingPrivate =
     body.isPublic === false && wishlist.isPublic;
+
+  if (body.currency !== undefined && body.currency !== wishlist.currency) {
+    if (!isCurrency(body.currency)) {
+      return jsonError("invalidCurrency", 400);
+    }
+    if (wishlistHasFinancialActivity(wishlist.items)) {
+      return jsonError("currencyLocked", 409);
+    }
+  }
 
   if (makingPrivate) {
     const summary = pendingRefundSummary(wishlist.items);
@@ -118,6 +138,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
     data: {
       title: body.title !== undefined ? String(body.title) : undefined,
       isPublic: body.isPublic !== undefined ? Boolean(body.isPublic) : undefined,
+      currency:
+        body.currency !== undefined && isCurrency(body.currency)
+          ? body.currency
+          : undefined,
       deadline:
         body.deadline === null
           ? null
@@ -135,7 +159,7 @@ export async function DELETE(req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonError("unauthorized", 401);
   }
   const wishlist = await prisma.wishlist.findUnique({
     where: { id },
@@ -144,7 +168,7 @@ export async function DELETE(req: Request, ctx: Ctx) {
     },
   });
   if (!wishlist || wishlist.ownerId !== session.user.id) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return jsonError("forbidden", 403);
   }
 
   const body = await req.json().catch(() => ({}));

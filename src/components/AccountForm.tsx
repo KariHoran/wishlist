@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   AVATAR_MAX_INPUT_BYTES,
   compressAvatarFile,
@@ -24,6 +25,9 @@ export function AccountForm({
 }) {
   const router = useRouter();
   const { online, requireOnline } = useNetwork();
+  const t = useTranslations("account");
+  const tCommon = useTranslations("common");
+  const tErrors = useTranslations("errors");
   const [preview, setPreview] = useState(avatarUrl);
   const [pendingFile, setPendingFile] = useState<Blob | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -43,11 +47,11 @@ export function AccountForm({
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setError("Можно загрузить только изображение");
+      setError(tErrors("imageType"));
       return;
     }
     if (file.size > AVATAR_MAX_INPUT_BYTES) {
-      setError("Файл слишком большой, попробуйте другое фото");
+      setError(tErrors("fileTooLarge"));
       return;
     }
 
@@ -60,7 +64,7 @@ export function AccountForm({
       });
       setPendingFile(compressed);
     } catch {
-      setError("Не удалось обработать изображение");
+      setError(tErrors("imageProcessFailed"));
     }
   }
 
@@ -83,7 +87,7 @@ export function AccountForm({
         });
         const uploadData = await uploadRes.json();
         if (!uploadRes.ok) {
-          setError(uploadData.error ?? "Не удалось загрузить аватар");
+          setError(uploadData.error ?? t("uploadFailed"));
           return;
         }
         nextAvatarUrl = uploadData.url as string;
@@ -102,13 +106,13 @@ export function AccountForm({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Ошибка");
+        setError(data.error ?? tErrors("generic"));
         return;
       }
-      setMessage("Сохранено");
+      setMessage(tCommon("saved"));
       router.refresh();
     } catch {
-      setError("Ошибка сети");
+      setError(t("networkError"));
     } finally {
       setSaving(false);
     }
@@ -119,7 +123,7 @@ export function AccountForm({
       <div className="flex items-center gap-4">
         <Image
           src={preview || "/decor/avatar-halftone-cat.png"}
-          alt={`Аватар ${displayName}`}
+          alt={t("avatarAlt", { name: displayName })}
           width={64}
           height={64}
           unoptimized={Boolean(preview?.startsWith("blob:"))}
@@ -127,7 +131,7 @@ export function AccountForm({
         />
         <div className="space-y-1">
           <label className="btn-secondary cursor-pointer text-xs">
-            Сменить аватар
+            {t("changeAvatar")}
             <input
               type="file"
               accept="image/*"
@@ -139,15 +143,13 @@ export function AccountForm({
             />
           </label>
           {pendingFile && (
-            <p className="mono-font text-[10px] text-black/60">
-              Превью сжатого фото — нажмите «Сохранить»
-            </p>
+            <p className="mono-font text-[10px] text-black/60">{t("pendingPreview")}</p>
           )}
         </div>
       </div>
       <div>
         <label htmlFor="account-display-name" className="pixel-font mb-2 block text-xs">
-          Имя
+          {t("name")}
         </label>
         <input
           id="account-display-name"
@@ -158,11 +160,8 @@ export function AccountForm({
         />
       </div>
       <div>
-        <label
-          htmlFor="account-handle"
-          className="pixel-font mb-2 block text-xs"
-        >
-          Ник (только чтение)
+        <label htmlFor="account-handle" className="pixel-font mb-2 block text-xs">
+          {t("handle")}
         </label>
         <input
           id="account-handle"
@@ -173,7 +172,7 @@ export function AccountForm({
       </div>
       <div>
         <label htmlFor="account-email" className="pixel-font mb-2 block text-xs">
-          Email
+          {t("email")}
         </label>
         <input
           id="account-email"
@@ -194,16 +193,19 @@ export function AccountForm({
             checked={emailNotif}
             onChange={(e) => setEmailNotif(e.target.checked)}
           />
-          Получать уведомления на email
+          {t("emailNotif")}
         </label>
-        <p className="mono-font mt-1 text-sm text-[#888]">
-          Бронирования, взносы, завершение сборов, заявки в друзья
-        </p>
+        <p className="mono-font mt-1 text-sm text-[#888]">{t("emailNotifHint")}</p>
       </div>
       {error && <p className="mono-font text-red-600">{error}</p>}
       {message && <p className="mono-font text-green-700">{message}</p>}
-      <button type="submit" className="btn-primary w-full" disabled={saving || !online} title={!online ? "Нет соединения" : undefined}>
-        {saving ? "Сохранение…" : "Сохранить"}
+      <button
+        type="submit"
+        className="btn-primary w-full"
+        disabled={saving || !online}
+        title={!online ? tCommon("noConnection") : undefined}
+      >
+        {saving ? tCommon("saving") : tCommon("save")}
       </button>
     </form>
   );

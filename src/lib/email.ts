@@ -1,5 +1,14 @@
 import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
+import { getUserLocale } from "@/lib/notifications";
+import { loadMessagesSync } from "@/i18n/load-messages";
+import { formatCurrency } from "@/lib/money";
+import {
+  defaultLocale,
+  parseLocale,
+  type AppLocale,
+  type WishlistCurrency,
+} from "@/i18n/config";
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -8,9 +17,40 @@ const resend = process.env.RESEND_API_KEY
 const FROM = "Wishlist <no-reply@wishlist.app>";
 const APP_URL = process.env.NEXTAUTH_URL ?? "https://wishlist-ashy-three.vercel.app";
 
-function baseTemplate(content: string): string {
+type EmailMessages = Record<string, string>;
+
+function emailMsg(
+  locale: AppLocale,
+  key: string,
+  params?: Record<string, string | number>,
+): string {
+  const messages = loadMessagesSync(locale) as { email?: EmailMessages };
+  let text = messages.email?.[key] ?? key;
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      text = text.split(`{${k}}`).join(String(v));
+    }
+  }
+  return text;
+}
+
+async function resolveSenderLocale(opts: {
+  locale?: AppLocale;
+  userId?: string;
+}): Promise<AppLocale> {
+  if (opts.locale) return opts.locale;
+  if (opts.userId) return getUserLocale(opts.userId);
+  return defaultLocale;
+}
+
+function baseTemplate(content: string, locale: AppLocale): string {
+  const messages = loadMessagesSync(locale) as { email?: EmailMessages };
+  const htmlLang = messages.email?.htmlLang ?? locale;
+  const footer = messages.email?.footer ?? "";
+  const disable = messages.email?.disable ?? "";
+
   return `<!DOCTYPE html>
-<html lang="ru">
+<html lang="${htmlLang}">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -39,8 +79,8 @@ function baseTemplate(content: string): string {
           <tr>
             <td style="padding:16px 0 0 0;text-align:center;">
               <span style="font-size:11px;color:#888;font-family:monospace;">
-                Вы получили это письмо, потому что включены email-уведомления.
-                <a href="${APP_URL}/account" style="color:#888;">Отключить</a>
+                ${footer}
+                <a href="${APP_URL}/account" style="color:#888;">${disable}</a>
               </span>
             </td>
           </tr>
@@ -102,128 +142,221 @@ export function sendEmailFireAndForget(opts: SendEmailOpts): void {
 
 // ---------- User email lookup ----------
 
+export type EmailRecipient = {
+  email: string;
+  locale: AppLocale;
+};
+
 /**
- * Returns the user's email if they have email notifications enabled,
+ * Returns the user's email and locale if they have email notifications enabled,
  * otherwise null. Never throws.
  */
-export async function getUserEmailIfEnabled(userId: string): Promise<string | null> {
+export async function getUserEmailAndLocale(
+  userId: string,
+): Promise<EmailRecipient | null> {
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { email: true, emailNotificationsEnabled: true },
+      select: { email: true, emailNotificationsEnabled: true, locale: true },
     });
-    if (!user?.emailNotificationsEnabled) return null;
-    return user.email;
+    if (!user?.emailNotificationsEnabled || !user.email) return null;
+    return { email: user.email, locale: parseLocale(user.locale) };
   } catch {
     return null;
   }
 }
 
+/**
+ * Returns the user's email if they have email notifications enabled,
+ * otherwise null. Never throws.
+ */
+export async function getUserEmailIfEnabled(userId: string): Promise<string | null> {
+  const recipient = await getUserEmailAndLocale(userId);
+  return recipient?.email ?? null;
+}
+
 // ---------- Typed senders ----------
 
 export function emailItemReserved(opts: {
+  userId?: string;
+  locale?: AppLocale;
   to: string;
   itemName: string;
   wishlistTitle: string;
   wishlistId: string;
 }) {
-  sendEmailFireAndForget({
-    to: opts.to,
-    subject: `Подарок «${opts.itemName}» забронирован`,
-    html: baseTemplate(
-      h("Ваш подарок забронирован 🎁") +
-      p(`Кто-то зарезервировал <strong>«${opts.itemName}»</strong> из списка «${opts.wishlistTitle}».`) +
-      p("Имя не показывается — сюрприз!") +
-      btn("Открыть список", `${APP_URL}/wishlist/${opts.wishlistId}`),
-    ),
-  });
+  void (async () => {
+    const locale = await resolveSenderLocale(opts);
+    sendEmailFireAndForget({
+      to: opts.to,
+      subject: emailMsg(locale, "reservedSubject", { itemName: opts.itemName }),
+      html: baseTemplate(
+        h(emailMsg(locale, "reservedHeading")) +
+          p(
+            emailMsg(locale, "reservedBody", {
+              itemName: opts.itemName,
+              wishlistTitle: opts.wishlistTitle,
+            }),
+          ) +
+          p(emailMsg(locale, "reservedSurprise")) +
+          btn(emailMsg(locale, "openList"), `${APP_URL}/wishlist/${opts.wishlistId}`),
+        locale,
+      ),
+    });
+  })();
 }
 
 export function emailItemContributed(opts: {
+  userId?: string;
+  locale?: AppLocale;
   to: string;
   itemName: string;
   wishlistTitle: string;
   wishlistId: string;
   amount: number;
+  currency?: WishlistCurrency;
 }) {
-  const amt = opts.amount.toLocaleString("ru-RU") + " ₽";
-  sendEmailFireAndForget({
-    to: opts.to,
-    subject: `Новый взнос ${amt} на «${opts.itemName}»`,
-    html: baseTemplate(
-      h("Новый взнос на сбор 💚") +
-      p(`На <strong>«${opts.itemName}»</strong> из «${opts.wishlistTitle}» поступил взнос <strong>${amt}</strong>.`) +
-      btn("Открыть список", `${APP_URL}/wishlist/${opts.wishlistId}`),
-    ),
-  });
+  void (async () => {
+    const locale = await resolveSenderLocale(opts);
+    const amt = formatCurrency(opts.amount, opts.currency, locale);
+    sendEmailFireAndForget({
+      to: opts.to,
+      subject: emailMsg(locale, "contributedSubject", {
+        amount: amt,
+        itemName: opts.itemName,
+      }),
+      html: baseTemplate(
+        h(emailMsg(locale, "contributedHeading")) +
+          p(
+            emailMsg(locale, "contributedBody", {
+              itemName: opts.itemName,
+              wishlistTitle: opts.wishlistTitle,
+              amount: amt,
+            }),
+          ) +
+          btn(emailMsg(locale, "openList"), `${APP_URL}/wishlist/${opts.wishlistId}`),
+        locale,
+      ),
+    });
+  })();
 }
 
 export function emailGoalReached(opts: {
+  userId?: string;
+  locale?: AppLocale;
   to: string;
   itemName: string;
   wishlistTitle: string;
   wishlistId: string;
 }) {
-  sendEmailFireAndForget({
-    to: opts.to,
-    subject: `Сбор на «${opts.itemName}» завершён!`,
-    html: baseTemplate(
-      h("Сбор закрыт — 100% собрано! 🎉") +
-      p(`Сбор на <strong>«${opts.itemName}»</strong> из «${opts.wishlistTitle}» успешно завершён.`) +
-      btn("Открыть список", `${APP_URL}/wishlist/${opts.wishlistId}`),
-    ),
-  });
+  void (async () => {
+    const locale = await resolveSenderLocale(opts);
+    sendEmailFireAndForget({
+      to: opts.to,
+      subject: emailMsg(locale, "goalSubject", { itemName: opts.itemName }),
+      html: baseTemplate(
+        h(emailMsg(locale, "goalHeading")) +
+          p(
+            emailMsg(locale, "goalBody", {
+              itemName: opts.itemName,
+              wishlistTitle: opts.wishlistTitle,
+            }),
+          ) +
+          btn(emailMsg(locale, "openList"), `${APP_URL}/wishlist/${opts.wishlistId}`),
+        locale,
+      ),
+    });
+  })();
 }
 
 export function emailCancelledRefundDue(opts: {
+  userId?: string;
+  locale?: AppLocale;
   to: string;
   itemName: string;
   wishlistTitle: string;
   amount: number;
+  currency?: WishlistCurrency;
 }) {
-  const amt = opts.amount.toLocaleString("ru-RU") + " ₽";
-  sendEmailFireAndForget({
-    to: opts.to,
-    subject: `Возврат ${amt} — сбор на «${opts.itemName}» отменён`,
-    html: baseTemplate(
-      h("Вам нужно вернуть деньги ⚠️") +
-      p(`Автор отменил сбор на <strong>«${opts.itemName}»</strong> из «${opts.wishlistTitle}».`) +
-      p(`Ваш взнос составил <strong>${amt}</strong>. Владелец должен вернуть вам эти деньги вручную.`) +
-      btn("Открыть историю возвратов", `${APP_URL}/account/refunds`),
-    ),
-  });
+  void (async () => {
+    const locale = await resolveSenderLocale(opts);
+    const amt = formatCurrency(opts.amount, opts.currency, locale);
+    sendEmailFireAndForget({
+      to: opts.to,
+      subject: emailMsg(locale, "refundSubject", {
+        amount: amt,
+        itemName: opts.itemName,
+      }),
+      html: baseTemplate(
+        h(emailMsg(locale, "refundHeading")) +
+          p(
+            emailMsg(locale, "refundBody", {
+              itemName: opts.itemName,
+              wishlistTitle: opts.wishlistTitle,
+            }),
+          ) +
+          p(emailMsg(locale, "refundAmount", { amount: amt })) +
+          btn(emailMsg(locale, "openRefunds"), `${APP_URL}/account/refunds`),
+        locale,
+      ),
+    });
+  })();
 }
 
 export function emailFriendRequestAccepted(opts: {
+  userId?: string;
+  locale?: AppLocale;
   to: string;
   acceptorName: string;
   acceptorHandle: string;
 }) {
-  sendEmailFireAndForget({
-    to: opts.to,
-    subject: `${opts.acceptorName} принял(а) вашу заявку`,
-    html: baseTemplate(
-      h("Новый друг! 🤝") +
-      p(`<strong>${opts.acceptorName}</strong> (@${opts.acceptorHandle}) принял(а) вашу заявку в друзья.`) +
-      btn("Открыть список друзей", `${APP_URL}/friends`),
-    ),
-  });
+  void (async () => {
+    const locale = await resolveSenderLocale(opts);
+    sendEmailFireAndForget({
+      to: opts.to,
+      subject: emailMsg(locale, "friendSubject", { name: opts.acceptorName }),
+      html: baseTemplate(
+        h(emailMsg(locale, "friendHeading")) +
+          p(
+            emailMsg(locale, "friendBody", {
+              name: opts.acceptorName,
+              handle: opts.acceptorHandle,
+            }),
+          ) +
+          btn(emailMsg(locale, "openFriends"), `${APP_URL}/friends`),
+        locale,
+      ),
+    });
+  })();
 }
 
 export function emailDeadlineReminder(opts: {
+  userId?: string;
+  locale?: AppLocale;
   to: string;
   wishlistTitle: string;
   wishlistId: string;
   deadlineDate: string;
 }) {
-  sendEmailFireAndForget({
-    to: opts.to,
-    subject: `Напоминание: до дедлайна «${opts.wishlistTitle}» 3 дня`,
-    html: baseTemplate(
-      h("Скоро дедлайн! ⏳") +
-      p(`До дедлайна вашего списка <strong>«${opts.wishlistTitle}»</strong> осталось 3 дня (${opts.deadlineDate}).`) +
-      p("Убедитесь, что всё идёт по плану.") +
-      btn("Открыть список", `${APP_URL}/wishlist/${opts.wishlistId}`),
-    ),
-  });
+  void (async () => {
+    const locale = await resolveSenderLocale(opts);
+    sendEmailFireAndForget({
+      to: opts.to,
+      subject: emailMsg(locale, "deadlineSubject", {
+        wishlistTitle: opts.wishlistTitle,
+      }),
+      html: baseTemplate(
+        h(emailMsg(locale, "deadlineHeading")) +
+          p(
+            emailMsg(locale, "deadlineBody", {
+              wishlistTitle: opts.wishlistTitle,
+              deadlineDate: opts.deadlineDate,
+            }),
+          ) +
+          p(emailMsg(locale, "deadlineHint")) +
+          btn(emailMsg(locale, "openList"), `${APP_URL}/wishlist/${opts.wishlistId}`),
+        locale,
+      ),
+    });
+  })();
 }

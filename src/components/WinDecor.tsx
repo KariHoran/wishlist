@@ -1,3 +1,7 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+
 export function WinWelcome({ className = "" }: { className?: string }) {
   return (
     <div
@@ -146,6 +150,7 @@ export function WinErrorStack({ className = "" }: { className?: string }) {
 }
 
 export function PublicListBadge({ variant = "banner" }: { variant?: "banner" | "modal" }) {
+  const t = useTranslations("wishlist");
   return (
     <div
       className={`public-badge public-badge--${variant}`}
@@ -155,7 +160,7 @@ export function PublicListBadge({ variant = "banner" }: { variant?: "banner" | "
       <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center bg-black text-[10px] text-white">
         !
       </span>
-      <span>Вы смотрите публичный список</span>
+      <span>{t("publicBadge")}</span>
     </div>
   );
 }

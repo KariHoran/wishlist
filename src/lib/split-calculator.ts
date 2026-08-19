@@ -57,16 +57,16 @@ export function canJoinFixedSplit(params: {
   activeContributionCount: number;
   splitParticipants: number;
   userAlreadyContributed: boolean;
-}): { ok: true } | { ok: false; error: string; statusCode: number } {
+}): { ok: true } | { ok: false; errorKey: string; statusCode: number } {
   const { activeContributionCount, splitParticipants, userAlreadyContributed } =
     params;
   if (activeContributionCount >= splitParticipants) {
-    return { ok: false, error: "Складчина уже набрана", statusCode: 409 };
+    return { ok: false, errorKey: "splitFull", statusCode: 409 };
   }
   if (userAlreadyContributed) {
     return {
       ok: false,
-      error: "Вы уже участвуете в этой складчине",
+      errorKey: "alreadyJoinedSplit",
       statusCode: 409,
     };
   }

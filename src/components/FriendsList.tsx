@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { ProgressBar } from "@/components/ProgressBar";
 import { useNetwork } from "@/components/NetworkProvider";
 import { RetroInlineState } from "@/components/RetroState";
@@ -26,6 +27,9 @@ const DEFAULT_AVATAR = "/decor/avatar-halftone-cat.png";
 export function FriendsList({ initialFriends }: { initialFriends: FriendCard[] }) {
   const router = useRouter();
   const { requireOnline } = useNetwork();
+  const t = useTranslations("friends");
+  const tNav = useTranslations("nav");
+  const tCommon = useTranslations("common");
   const [friends, setFriends] = useState(initialFriends);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -42,13 +46,13 @@ export function FriendsList({ initialFriends }: { initialFriends: FriendCard[] }
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setFriends(prev);
-        setError(data.error ?? "Не удалось удалить");
+        setError(data.error ?? t("removeFailed"));
         return;
       }
       startTransition(() => router.refresh());
     } catch {
       setFriends(prev);
-      setError("Ошибка сети");
+      setError(t("networkError"));
     } finally {
       setPendingId(null);
     }
@@ -68,7 +72,7 @@ export function FriendsList({ initialFriends }: { initialFriends: FriendCard[] }
               <div className="flex items-center gap-3">
                 <Image
                   src={f.avatarUrl || DEFAULT_AVATAR}
-                  alt={`Аватар пользователя ${f.displayName}`}
+                  alt={tNav("avatarAlt", { name: f.displayName })}
                   width={40}
                   height={40}
                   className="h-10 w-10 rounded-full border-2 border-black object-cover"
@@ -79,11 +83,11 @@ export function FriendsList({ initialFriends }: { initialFriends: FriendCard[] }
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="btn-secondary text-xs">Посмотреть вишлисты</span>
+                <span className="btn-secondary text-xs">{t("viewWishlists")}</span>
                 <button
                   type="button"
                   className="hard-border flex h-8 w-8 items-center justify-center bg-white pixel-font text-sm leading-none hover:bg-[#eee]"
-                  aria-label={`Удалить ${f.displayName} из друзей`}
+                  aria-label={t("removeAria", { name: f.displayName })}
                   disabled={pendingId === f.id}
                   onClick={(e) => {
                     e.preventDefault();
@@ -104,18 +108,18 @@ export function FriendsList({ initialFriends }: { initialFriends: FriendCard[] }
                   <ProgressBar percent={w.percent} height={12} />
                 </div>
                 <p className="mono-font mt-1 mb-3 text-base">
-                  {w.percent}% · {w.itemCount} предметов
+                  {t("itemsLine", { percent: w.percent, count: w.itemCount })}
                 </p>
                 <Link href={`/wishlist/${w.id}`} className="btn-primary w-full text-xs">
-                  Открыть
+                  {tCommon("open")}
                 </Link>
               </article>
             ))}
             {f.wishlists.length === 0 && (
               <RetroInlineState
                 compact
-                title="Нет публичных вишлистов"
-                message="Когда он откроет списки для друзей, они появятся здесь."
+                title={t("emptyPublicTitle")}
+                message={t("emptyPublicFriendMessage")}
               />
             )}
           </div>
@@ -123,15 +127,12 @@ export function FriendsList({ initialFriends }: { initialFriends: FriendCard[] }
             href={`/f/${f.handle}`}
             className="pixel-font mt-3 inline-block text-xs underline underline-offset-4 leading-normal"
           >
-            Публичный профиль →
+            {t("publicProfile")}
           </Link>
         </details>
       ))}
       {friends.length === 0 && (
-        <RetroInlineState
-          title="Пока нет друзей"
-          message="Отправьте первую заявку по нику."
-        />
+        <RetroInlineState title={t("emptyFriendsTitle")} message={t("emptyFriendsMessage")} />
       )}
     </div>
   );

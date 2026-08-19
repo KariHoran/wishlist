@@ -3,11 +3,21 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { ProgressBar } from "@/components/ProgressBar";
 import { PublicListBadge } from "@/components/WinDecor";
 import { DecorImage } from "@/components/DecorImage";
 import Image from "next/image";
-import { formatPercent, formatRub, itemFundingPercent, amountForSplitIndex } from "@/lib/money";
+import { formatPercent, formatCurrency, itemFundingPercent, amountForSplitIndex } from "@/lib/money";
+import {
+  currencies,
+  defaultCurrency,
+  isCurrency,
+  parseCurrency,
+  type AppLocale,
+  type WishlistCurrency,
+} from "@/i18n/config";
+import { wishlistHasFinancialActivity } from "@/lib/wishlist-currency";
 import { useWishlistRealtime } from "@/hooks/useWishlistRealtime";
 import { useNetwork } from "@/components/NetworkProvider";
 import {
@@ -50,6 +60,7 @@ type Props = {
     emoji: string | null;
     isPublic: boolean;
     ownerId: string;
+    currency: string;
     deadline?: string | null;
   };
   items: ClientItem[];
@@ -58,6 +69,14 @@ type Props = {
   currentUserId?: string;
   shareToken?: string;
 };
+
+function guestName(
+  isAnonymous: boolean | undefined,
+  displayName: string | undefined,
+  anonymousLabel: string,
+) {
+  return isAnonymous || !displayName ? anonymousLabel : displayName;
+}
 
 export function WishlistView({
   wishlist,
@@ -68,6 +87,13 @@ export function WishlistView({
   shareToken,
 }: Props) {
   const router = useRouter();
+  const locale = useLocale() as AppLocale;
+  const currency = parseCurrency(wishlist.currency || defaultCurrency);
+  const t = useTranslations("wishlist");
+  const tCommon = useTranslations("common");
+  const tErrors = useTranslations("errors");
+  const tStatus = useTranslations("status");
+  const fmt = (amount: number | string) => formatCurrency(amount, currency, locale);
   const { online, requireOnline } = useNetwork();
   useWishlistRealtime(wishlist.id);
 
@@ -88,6 +114,7 @@ export function WishlistView({
     totalAmount: number;
     itemCount?: number;
   } | null>(null);
+  const currencyLocked = wishlistHasFinancialActivity(localItems);
 
   useEffect(() => {
     if (optimisticPending === 0) {
@@ -130,7 +157,7 @@ export function WishlistView({
         return;
       }
       if (!res.ok) {
-        alert("Ошибка удаления");
+        alert(tErrors("deleteFailed"));
         return;
       }
       router.push("/dashboard");
@@ -147,7 +174,7 @@ export function WishlistView({
     setBusy(false);
     setCancelModal(null);
     if (!res.ok) {
-      alert("Ошибка удаления");
+      alert(tErrors("deleteFailed"));
       return;
     }
     router.push("/dashboard");
@@ -179,7 +206,7 @@ export function WishlistView({
       if (!res.ok) {
         setLocalItems(prev);
         setOptimisticPending((v) => Math.max(0, v - 1));
-        alert("Ошибка удаления");
+        alert(tErrors("deleteFailed"));
         return;
       }
       setOptimisticPending((v) => Math.max(0, v - 1));
@@ -196,7 +223,7 @@ export function WishlistView({
     setBusy(false);
     setCancelModal(null);
     if (!res.ok) {
-      alert("Ошибка");
+      alert(tErrors("generic"));
       return;
     }
     router.refresh();
@@ -227,7 +254,7 @@ export function WishlistView({
       method: "POST",
     });
     if (!res.ok) {
-      alert("Не удалось обновить ссылку");
+      alert(tErrors("shareRefreshFailed"));
       return;
     }
     const data = await res.json() as { shareToken: string };
@@ -360,7 +387,7 @@ export function WishlistView({
         setLocalItems(prev);
         setOptimisticPending((v) => Math.max(0, v - 1));
       }
-      alert(data.error ?? "Ошибка");
+      alert(data.error ?? tErrors("generic"));
       return;
     }
     if (
@@ -468,7 +495,7 @@ export function WishlistView({
           href="/dashboard"
           className="pixel-font text-xs underline underline-offset-4 leading-normal md:text-sm"
         >
-          ← Обратно к вишлистам
+          {t("backToLists")}
         </Link>
         {isOwner && (
           <div className="flex max-w-full flex-wrap items-start justify-end gap-x-2 gap-y-1 md:gap-x-3">
@@ -479,19 +506,19 @@ export function WishlistView({
                 setEditWishlistOpen(true);
               }}
               disabled={!online}
-              title={!online ? "Нет соединения" : undefined}
+              title={!online ? tCommon("noConnection") : undefined}
               className="pixel-font text-[10px] underline underline-offset-4 leading-normal md:text-xs"
             >
-              Редактировать
+              {t("edit")}
             </button>
             <button
               type="button"
               onClick={() => togglePublic()}
               disabled={busy || !online}
-              title={!online ? "Нет соединения" : undefined}
+              title={!online ? tCommon("noConnection") : undefined}
               className="pixel-font text-[10px] underline underline-offset-4 leading-normal md:text-xs"
             >
-              {wishlist.isPublic ? "Сделать личным" : "Сделать публичным"}
+              {wishlist.isPublic ? t("makePrivate") : t("makePublic")}
             </button>
             {wishlist.isPublic && currentShareToken && (
               <>
@@ -499,18 +526,18 @@ export function WishlistView({
                   type="button"
                   onClick={() => void copyShareLink()}
                   className="pixel-font text-[10px] underline underline-offset-4 leading-normal md:text-xs"
-                  title="Скопировать публичную ссылку"
+                  title={t("copyLinkTitle")}
                 >
-                  {shareToast ? "✓ Скопировано!" : "Поделиться ссылкой"}
+                  {shareToast ? t("copied") : t("copyLink")}
                 </button>
                 <button
                   type="button"
                   onClick={() => void regenerateShareToken()}
                   disabled={!online}
                   className="pixel-font text-[10px] text-[#888] underline underline-offset-4 leading-normal md:text-xs"
-                  title="Сбросить старую ссылку и выпустить новую"
+                  title={t("refreshLinkTitle")}
                 >
-                  Обновить ссылку
+                  {t("refreshLink")}
                 </button>
               </>
             )}
@@ -518,10 +545,10 @@ export function WishlistView({
               type="button"
               onClick={() => deleteWishlist()}
               disabled={!online}
-              title={!online ? "Нет соединения" : undefined}
+              title={!online ? tCommon("noConnection") : undefined}
               className="pixel-font text-[10px] text-[#666] underline underline-offset-4 leading-normal md:text-xs"
             >
-              Удалить вишлист
+              {t("deleteList")}
             </button>
           </div>
         )}
@@ -536,9 +563,13 @@ export function WishlistView({
 
       <div className="hard-border-thick mb-8 bg-white p-4">
         <div className="mb-2 flex items-center justify-between gap-3">
-          <span className="pixel-font text-sm">Прогресс</span>
+          <span className="pixel-font text-sm">{t("progress")}</span>
           <span className="mono-font text-lg">
-            {collectedCount}/{visibleItems.length} собрано ({percent}%)
+            {t("progressCounts", {
+              collected: collectedCount,
+              total: visibleItems.length,
+              percent,
+            })}
           </span>
         </div>
         <ProgressBar percent={percent} segmented height={22} />
@@ -547,13 +578,9 @@ export function WishlistView({
       {visibleItems.length === 0 ? (
         <div className="mt-6">
           <RetroInlineState
-            title={isOwner ? "Пока нет предметов" : "Предметы отсутствуют"}
-            message={
-              isOwner
-                ? "Добавьте подарок в список — и друзья смогут зарезервировать или скинуться."
-                : "Этот список ещё не содержит доступных подарков."
-            }
-            actionLabel={isOwner ? "+ Добавить предметы" : undefined}
+            title={isOwner ? t("emptyOwnerTitle") : t("emptyGuestTitle")}
+            message={isOwner ? t("emptyOwnerMessage") : t("emptyGuestMessage")}
+            actionLabel={isOwner ? t("addItems") : undefined}
             onAction={
               isOwner
                 ? () => {
@@ -568,10 +595,10 @@ export function WishlistView({
           {visibleItems.map((item, itemIndex) => {
           const statusLabel =
             item.status === "RESERVED"
-              ? "Забронировано"
+              ? tStatus("RESERVED")
               : item.status === "FUNDING"
-                ? "Сбор"
-                : "Ожидание";
+                ? tStatus("cardFunding")
+                : tStatus("cardWaiting");
           const bulb =
             item.status === "RESERVED"
               ? "💡"
@@ -595,8 +622,8 @@ export function WishlistView({
                       setEditItemId(item.id);
                     }}
                     disabled={!online}
-                    title={!online ? "Нет соединения" : "Редактировать"}
-                    aria-label="Редактировать"
+                    title={!online ? tCommon("noConnection") : tCommon("edit")}
+                    aria-label={tCommon("edit")}
                   >
                     ✎
                   </button>
@@ -608,8 +635,8 @@ export function WishlistView({
                       deleteItem(item.id);
                     }}
                     disabled={!online}
-                    title={!online ? "Нет соединения" : "Удалить"}
-                    aria-label="Удалить"
+                    title={!online ? tCommon("noConnection") : tCommon("delete")}
+                    aria-label={tCommon("delete")}
                   >
                     ✕
                   </button>
@@ -618,7 +645,7 @@ export function WishlistView({
               <div className="relative aspect-square border-b-2 border-black bg-[#eee]">
                 <Image
                   src={item.imageUrl || "/decor/cat-halftone-portrait.png"}
-                  alt={`Фото подарка: ${item.name}`}
+                  alt={t("giftPhotoAlt", { name: item.name })}
                   fill
                   sizes="(max-width: 768px) 100vw, 200px"
                   // First cards are LCP on wishlist grid — don't lazy-load them
@@ -628,7 +655,7 @@ export function WishlistView({
               </div>
               <div className="p-3">
                 <p className="pixel-font text-xs leading-relaxed">{item.name}</p>
-                <p className="mono-font text-xl">{formatRub(Number(item.price))}</p>
+                <p className="mono-font text-xl">{fmt(Number(item.price))}</p>
                 <p className="mono-font mt-1 flex items-center gap-1 text-base">
                   <span>{bulb}</span> {statusLabel}
                 </p>
@@ -640,7 +667,7 @@ export function WishlistView({
                     className="pixel-font mt-2 inline-block text-[10px] underline underline-offset-2"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    Открыть товар ↗
+                    {t("openProduct")}
                   </a>
                 )}
               </div>
@@ -656,13 +683,13 @@ export function WishlistView({
             type="button"
             className="btn-primary px-8"
             disabled={!online}
-            title={!online ? "Нет соединения" : undefined}
+            title={!online ? tCommon("noConnection") : undefined}
             onClick={() => {
               if (!requireOnline()) return;
               setAddOpen(true);
             }}
           >
-            + Добавить предметы
+            {t("addItems")}
           </button>
         </div>
       )}
@@ -670,20 +697,26 @@ export function WishlistView({
 
       {cancelModal && (
         <ModalDialog onClose={() => setCancelModal(null)}>
-            <h2 className="display-font mb-4 text-center text-sm">Внимание</h2>
+            <h2 className="display-font mb-4 text-center text-sm">{tCommon("attention")}</h2>
             {cancelModal.kind === "item" ? (
               <p className="mono-font mb-4 text-lg leading-relaxed">
-                На подарок «{cancelModal.itemName}» скинулись{" "}
-                {cancelModal.contributorCount} человек(а) на сумму{" "}
-                {formatRub(cancelModal.totalAmount)}. Удаление отменит сбор — вам
-                нужно будет вернуть деньги каждому вручную. Продолжить?
+                {t("cancelItemBody", {
+                  itemName: cancelModal.itemName ?? "",
+                  contributorCount: cancelModal.contributorCount,
+                  amount: fmt(cancelModal.totalAmount),
+                })}
+              </p>
+            ) : cancelModal.kind === "private" ? (
+              <p className="mono-font mb-4 text-lg leading-relaxed">
+                {t("confirmMakePrivate", { itemCount: cancelModal.itemCount ?? 0 })}
               </p>
             ) : (
               <p className="mono-font mb-4 text-lg leading-relaxed">
-                В {cancelModal.itemCount} предмет(ах) есть незавершённые сборы (
-                {cancelModal.contributorCount} участник(ов), всего{" "}
-                {formatRub(cancelModal.totalAmount)}). Сборы будут отменены — деньги
-                нужно вернуть вручную. Продолжить?
+                {t("cancelListBody", {
+                  itemCount: cancelModal.itemCount ?? 0,
+                  contributorCount: cancelModal.contributorCount,
+                  amount: fmt(cancelModal.totalAmount),
+                })}
               </p>
             )}
             <div className="flex gap-3">
@@ -693,14 +726,14 @@ export function WishlistView({
                 disabled={busy}
                 onClick={confirmCancelModal}
               >
-                Продолжить
+                {tCommon("continue")}
               </button>
               <button
                 type="button"
                 className="btn-secondary flex-1"
                 onClick={() => setCancelModal(null)}
               >
-                Назад
+                {tCommon("back")}
               </button>
             </div>
         </ModalDialog>
@@ -709,6 +742,7 @@ export function WishlistView({
       {selected && (
         <ItemModal
           item={selected}
+          currency={currency}
           isOwner={isOwner}
           isGuestView={isGuestView}
           currentUserId={currentUserId}
@@ -752,6 +786,7 @@ export function WishlistView({
       {editWishlistOpen && (
         <EditWishlistModal
           wishlist={wishlist}
+          currencyLocked={currencyLocked}
           onClose={() => setEditWishlistOpen(false)}
           onDone={() => {
             setEditWishlistOpen(false);
@@ -786,14 +821,15 @@ function MessageFields({
   onMessage: (v: string) => void;
   onAnonymous: (v: boolean) => void;
 }) {
+  const t = useTranslations("item");
   return (
     <div className="space-y-2">
-      <label htmlFor="item-message" className="pixel-font block text-xs">Сообщение (необязательно)</label>
+      <label htmlFor="item-message" className="pixel-font block text-xs">{t("messageLabel")}</label>
       <textarea
         id="item-message"
         className="input-field min-h-[4.5rem] resize-y"
         maxLength={200}
-        placeholder="Поздравление или пожелание…"
+        placeholder={t("messagePlaceholder")}
         value={message}
         onChange={(e) => onMessage(e.target.value)}
       />
@@ -805,7 +841,7 @@ function MessageFields({
           checked={anonymous}
           onChange={(e) => onAnonymous(e.target.checked)}
         />
-        Отправить анонимно
+        {t("sendAnonymous")}
       </label>
     </div>
   );
@@ -813,6 +849,7 @@ function MessageFields({
 
 function ItemModal({
   item,
+  currency,
   isOwner,
   isGuestView,
   currentUserId,
@@ -825,6 +862,7 @@ function ItemModal({
   onStopFunding,
 }: {
   item: ClientItem;
+  currency: WishlistCurrency;
   isOwner: boolean;
   isGuestView: boolean;
   currentUserId?: string;
@@ -843,6 +881,11 @@ function ItemModal({
   }) => void;
   onStopFunding: () => void;
 }) {
+  const locale = useLocale() as AppLocale;
+  const t = useTranslations("item");
+  const tWishlist = useTranslations("wishlist");
+  const tCommon = useTranslations("common");
+  const fmt = (amount: number | string) => formatCurrency(amount, currency, locale);
   const [chipIn, setChipIn] = useState(false);
   const [reserveForm, setReserveForm] = useState(false);
   const [amount, setAmount] = useState("");
@@ -893,7 +936,7 @@ function ItemModal({
           type="button"
           className="hard-border flex h-8 w-8 shrink-0 items-center justify-center bg-white text-xl leading-none"
           onClick={onClose}
-          aria-label="Закрыть"
+          aria-label={tCommon("close")}
         >
           ✕
         </button>
@@ -909,7 +952,7 @@ function ItemModal({
               rel="noopener noreferrer"
               className="pixel-font text-xs underline underline-offset-4"
             >
-              Открыть товар ↗
+              {tWishlist("openProduct")}
             </a>
           </p>
         )}
@@ -921,7 +964,7 @@ function ItemModal({
               <div className="relative hard-border h-28 w-28 shrink-0 overflow-hidden">
                 <Image
                   src={item.imageUrl || "/decor/cat-halftone-portrait.png"}
-                  alt={`Фото подарка: ${item.name}`}
+                  alt={tWishlist("giftPhotoAlt", { name: item.name })}
                   fill
                   sizes="112px"
                   className="object-cover"
@@ -929,27 +972,29 @@ function ItemModal({
               </div>
               <div className="flex-1">
                 <p className="mono-font text-lg">
-                  {formatPercent(fundingPct, 2)} собрано
+                  {t("collectedPercent", { percent: formatPercent(fundingPct, locale, 2) })}
                 </p>
-                <p className="display-font text-xl">{formatRub(Number(item.price))}</p>
+                <p className="display-font text-xl">{fmt(Number(item.price))}</p>
                 <div className="mt-2">
                   <ProgressBar percent={fundingPct} height={14} />
                 </div>
                 {isFixed && splitTotal > 0 && (
                   <p className="mono-font mt-2 text-base">
-                    Скинулись: {contribCount} из {splitTotal}
+                    {t("splitProgress", { count: contribCount, total: splitTotal })}
                     {item.splitAmountPerPerson != null && (
-                      <> · по {formatRub(Number(item.splitAmountPerPerson))}</>
+                      <>{t("splitPerPerson", { amount: fmt(Number(item.splitAmountPerPerson)) })}</>
                     )}
                   </p>
                 )}
                 <p className="mono-font mt-2 text-base text-[#666]">
-                  Участники скрыты — сюрприз!
+                  {t("surpriseParticipants")}
                 </p>
                 {item.status === "RESERVED" && item.reservationMessage && (
                   <p className="mono-font mt-2 text-base leading-snug">
-                    {item.reservationAnonymous ? "Аноним" : "Сообщение"}: «
-                    {item.reservationMessage}»
+                    {t("reservationNote", {
+                      from: item.reservationAnonymous ? tCommon("anonymous") : t("messageFrom"),
+                      message: item.reservationMessage,
+                    })}
                   </p>
                 )}
               </div>
@@ -957,7 +1002,7 @@ function ItemModal({
 
             {showStartOptions && item.status !== "FUNDING" ? (
               <div className="space-y-3">
-                <p className="pixel-font text-xs">Режим сбора</p>
+                <p className="pixel-font text-xs">{t("fundingMode")}</p>
                 <label className="mono-font flex items-center gap-2 text-lg">
                   <input
                     type="radio"
@@ -965,7 +1010,7 @@ function ItemModal({
                     checked={fundingModePick === "FREE"}
                     onChange={() => setFundingModePick("FREE")}
                   />
-                  Свободный сбор
+                  {t("freeFunding")}
                 </label>
                 <label className="mono-font flex items-center gap-2 text-lg">
                   <input
@@ -974,7 +1019,7 @@ function ItemModal({
                     checked={fundingModePick === "FIXED_SPLIT"}
                     onChange={() => setFundingModePick("FIXED_SPLIT")}
                   />
-                  Складчина на N человек
+                  {t("fixedSplit")}
                 </label>
                 {fundingModePick === "FIXED_SPLIT" && (
                   <div>
@@ -982,7 +1027,7 @@ function ItemModal({
                       htmlFor="split-n"
                       className="pixel-font mb-1 block text-xs"
                     >
-                      Число участников
+                      {t("splitCount")}
                     </label>
                     <input
                       id="split-n"
@@ -995,10 +1040,9 @@ function ItemModal({
                     />
                     {Number(splitN) >= 2 && (
                       <p className="mono-font mt-1 text-base text-[#555]">
-                        С каждого ≈{" "}
-                        {formatRub(
-                          Math.ceil(Number(item.price) / Number(splitN)),
-                        )}
+                        {t("approxEach", {
+                          amount: fmt(Math.ceil(Number(item.price) / Number(splitN))),
+                        })}
                       </p>
                     )}
                   </div>
@@ -1024,14 +1068,14 @@ function ItemModal({
                       setShowStartOptions(false);
                     }}
                   >
-                    Запустить
+                    {t("start")}
                   </button>
                   <button
                     type="button"
                     className="btn-secondary flex-1"
                     onClick={() => setShowStartOptions(false)}
                   >
-                    Назад
+                    {tCommon("back")}
                   </button>
                 </div>
               </div>
@@ -1041,25 +1085,25 @@ function ItemModal({
                   <button
                     type="button"
                     disabled={busy || item.status === "RESERVED" || !online}
-                    title={!online ? "Нет соединения" : undefined}
+                    title={!online ? tCommon("noConnection") : undefined}
                     className="btn-primary flex-1"
                     onClick={() => setShowStartOptions(true)}
                   >
-                    Начать сбор денег
+                    {t("startFunding")}
                   </button>
                 ) : (
                   <button
                     type="button"
                     disabled={busy || !online}
-                    title={!online ? "Нет соединения" : undefined}
+                    title={!online ? tCommon("noConnection") : undefined}
                     className="btn-secondary flex-1"
                     onClick={onStopFunding}
                   >
-                    Остановить сбор
+                    {t("stopFunding")}
                   </button>
                 )}
                 <button type="button" className="btn-secondary flex-1" onClick={onClose}>
-                  Назад
+                  {tCommon("back")}
                 </button>
               </div>
             )}
@@ -1073,7 +1117,7 @@ function ItemModal({
               <div className="relative hard-border h-32 w-32 shrink-0 overflow-hidden">
                 <Image
                   src={item.imageUrl || "/decor/cat-halftone-portrait.png"}
-                  alt={`Фото подарка: ${item.name}`}
+                  alt={tWishlist("giftPhotoAlt", { name: item.name })}
                   fill
                   sizes="128px"
                   className="object-cover"
@@ -1081,15 +1125,15 @@ function ItemModal({
               </div>
               <div className="flex-1">
                 <p className="mono-font text-lg">
-                  {formatPercent(fundingPct, 2)} собрано
+                  {t("collectedPercent", { percent: formatPercent(fundingPct, locale, 2) })}
                 </p>
-                <p className="display-font text-2xl">{formatRub(Number(item.price))}</p>
+                <p className="display-font text-2xl">{fmt(Number(item.price))}</p>
                 <div className="mt-2">
                   <ProgressBar percent={fundingPct} height={14} />
                 </div>
                 {isFixed && splitTotal > 0 && (
                   <p className="mono-font mt-2 text-base">
-                    Скинулись: {contribCount} из {splitTotal}
+                    {t("splitProgress", { count: contribCount, total: splitTotal })}
                   </p>
                 )}
               </div>
@@ -1107,11 +1151,12 @@ function ItemModal({
                   <div key={c.id} className="relative z-10">
                     <div className="leader-row">
                       <span>
-                        {idx + 1}. {c.user.displayName}
+                        {idx + 1}.{" "}
+                        {guestName(c.isAnonymous, c.user.displayName, tCommon("anonymous"))}
                         {idx === 0 ? " 💛" : ""}
                       </span>
                       <span className="leader-dots" />
-                      <span>{formatRub(Number(c.amount))}</span>
+                      <span>{fmt(Number(c.amount))}</span>
                     </div>
                     {c.message && (
                       <p className="mono-font mt-1 ml-4 border-l-2 border-black pl-2 text-base leading-snug text-[#444]">
@@ -1121,7 +1166,7 @@ function ItemModal({
                   </div>
                 ))}
                 {(item.contributions ?? []).length === 0 && (
-                  <p className="mono-font text-lg text-[#777]">Пока никто не скинулся</p>
+                  <p className="mono-font text-lg text-[#777]">{t("nobodyYet")}</p>
                 )}
               </div>
             </div>
@@ -1129,29 +1174,29 @@ function ItemModal({
             <div className="flex gap-3">
               {splitFull || fundingPct >= 100 ? (
                 <p className="mono-font flex-1 self-center text-center text-lg">
-                  Складчина уже набрана
+                  {t("splitFull")}
                 </p>
               ) : alreadyJoined ? (
                 <p className="mono-font flex-1 self-center text-center text-lg">
-                  Вы уже участвуете
+                  {t("alreadyJoined")}
                 </p>
               ) : (
                 <button
                   type="button"
                   className="btn-primary flex-1"
                   disabled={busy || !online}
-                  title={!online ? "Нет соединения" : undefined}
+                  title={!online ? tCommon("noConnection") : undefined}
                   onClick={() => {
                     if (!requireOnline()) return;
                     setChipIn(true);
                     resetMsg();
                   }}
                 >
-                  Скинуться
+                  {t("chipIn")}
                 </button>
               )}
               <button type="button" className="btn-secondary flex-1" onClick={onClose}>
-                Назад
+                {tCommon("back")}
               </button>
             </div>
           </div>
@@ -1167,41 +1212,41 @@ function ItemModal({
               <div className="relative mx-auto hard-border h-48 w-48 overflow-hidden">
                 <Image
                   src={item.imageUrl || "/decor/cat-halftone-portrait.png"}
-                  alt={`Фото подарка: ${item.name}`}
+                  alt={tWishlist("giftPhotoAlt", { name: item.name })}
                   fill
                   sizes="192px"
                   className="object-cover"
                 />
               </div>
               <p className="display-font text-center text-2xl">
-                {formatRub(Number(item.price))}
+                {fmt(Number(item.price))}
               </p>
               <div className="flex gap-3">
                 <button
                   type="button"
                   className="btn-primary flex-1"
                   disabled={busy || !online}
-                  title={!online ? "Нет соединения" : undefined}
+                  title={!online ? tCommon("noConnection") : undefined}
                   onClick={() => {
                     if (!requireOnline()) return;
                     setReserveForm(true);
                     resetMsg();
                   }}
                 >
-                  Зарезервировать
+                  {t("reserve")}
                 </button>
                 <button
                   type="button"
                   className="btn-secondary flex-1"
                   disabled={busy || !online}
-                  title={!online ? "Нет соединения" : undefined}
+                  title={!online ? tCommon("noConnection") : undefined}
                   onClick={() => {
                     if (!requireOnline()) return;
                     setChipIn(true);
                     resetMsg();
                   }}
                 >
-                  Скинуться
+                  {t("chipIn")}
                 </button>
               </div>
             </div>
@@ -1222,7 +1267,7 @@ function ItemModal({
               resetMsg();
             }}
           >
-            <p className="pixel-font text-center text-sm">Зарезервировать подарок</p>
+            <p className="pixel-font text-center text-sm">{t("reserveTitle")}</p>
             <MessageFields
               message={message}
               anonymous={anonymous}
@@ -1235,7 +1280,7 @@ function ItemModal({
                 className="btn-primary flex-1"
                 disabled={busy || !online}
               >
-                Подтвердить
+                {t("confirm")}
               </button>
               <button
                 type="button"
@@ -1245,7 +1290,7 @@ function ItemModal({
                   resetMsg();
                 }}
               >
-                Назад
+                {tCommon("back")}
               </button>
             </div>
           </form>
@@ -1257,15 +1302,22 @@ function ItemModal({
             <div className="relative mx-auto hard-border h-48 w-48 overflow-hidden">
               <Image
                 src={item.imageUrl || "/decor/cat-halftone-portrait.png"}
-                alt={`Фото подарка: ${item.name}`}
+                alt={tWishlist("giftPhotoAlt", { name: item.name })}
                 fill
                 sizes="192px"
                 className="object-cover grayscale"
               />
             </div>
             <p className="mono-font text-xl">
-              Забронировано
-              {item.reservedBy ? `: ${item.reservedBy.displayName}` : ""}
+              {item.reservedBy
+                ? t("reservedBy", {
+                    name: guestName(
+                      item.reservationAnonymous,
+                      item.reservedBy.displayName,
+                      tCommon("anonymous"),
+                    ),
+                  })
+                : t("reserved")}
             </p>
             {item.reservationMessage && (
               <p className="mono-font text-base leading-snug">
@@ -1277,14 +1329,14 @@ function ItemModal({
                 type="button"
                 className="btn-secondary w-full"
                 disabled={busy || !online}
-                title={!online ? "Нет соединения" : undefined}
+                title={!online ? tCommon("noConnection") : undefined}
                 onClick={onUnreserve}
               >
-                Снять бронь
+                {t("unreserve")}
               </button>
             ) : (
               <button type="button" className="btn-secondary w-full" onClick={onClose}>
-                Назад
+                {tCommon("back")}
               </button>
             )}
           </div>
@@ -1318,7 +1370,7 @@ function ItemModal({
           >
             {isFixed ? (
               <p className="pixel-font text-center text-sm">
-                С вас: {formatRub(nextSplitAmount)}
+                {t("yourShare", { amount: fmt(nextSplitAmount) })}
               </p>
             ) : (
               <>
@@ -1326,13 +1378,13 @@ function ItemModal({
                   htmlFor="chip-amount"
                   className="pixel-font block text-center text-sm"
                 >
-                  Сколько скинуть?
+                  {t("howMuch")}
                 </label>
                 <input
                   id="chip-amount"
                   className="input-field"
                   inputMode="decimal"
-                  placeholder="Сумма ₽"
+                  placeholder={t("amountPlaceholder")}
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   required
@@ -1350,9 +1402,9 @@ function ItemModal({
                 type="submit"
                 className="btn-primary flex-1"
                 disabled={busy || !online}
-                title={!online ? "Нет соединения" : undefined}
+                title={!online ? tCommon("noConnection") : undefined}
               >
-                Скинуться
+                {t("chipIn")}
               </button>
               <button
                 type="button"
@@ -1362,7 +1414,7 @@ function ItemModal({
                   resetMsg();
                 }}
               >
-                Назад
+                {tCommon("back")}
               </button>
             </div>
           </form>
@@ -1374,6 +1426,7 @@ function ItemModal({
 
 function EditWishlistModal({
   wishlist,
+  currencyLocked,
   onClose,
   onDone,
 }: {
@@ -1381,14 +1434,41 @@ function EditWishlistModal({
     id: string;
     title: string;
     isPublic: boolean;
+    currency: string;
     deadline?: string | null;
   };
+  currencyLocked: boolean;
   onClose: () => void;
   onDone: () => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { online, requireOnline } = useNetwork();
+  const t = useTranslations("wishlistForm");
+  const tWishlist = useTranslations("wishlist");
+  const tCurrency = useTranslations("currency");
+  const tCommon = useTranslations("common");
+  const tErrors = useTranslations("errors");
+  const currentCurrency = parseCurrency(wishlist.currency || defaultCurrency);
+
+  function patchBody(
+    fd: FormData,
+    extra?: { isPublic?: boolean; confirm?: boolean },
+  ) {
+    const body: Record<string, unknown> = {
+      title: fd.get("title"),
+      deadline: fd.get("deadline") || null,
+      isPublic: extra?.isPublic ?? fd.get("isPublic") === "on",
+    };
+    if (extra?.confirm) body.confirm = true;
+    if (!currencyLocked) {
+      const next = String(fd.get("currency") || currentCurrency);
+      if (isCurrency(next) && next !== currentCurrency) {
+        body.currency = next;
+      }
+    }
+    return body;
+  }
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -1399,16 +1479,12 @@ function EditWishlistModal({
     const res = await fetch(`/api/wishlists/${wishlist.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: fd.get("title"),
-        deadline: fd.get("deadline") || null,
-        isPublic: fd.get("isPublic") === "on",
-      }),
+      body: JSON.stringify(patchBody(fd)),
     });
     let data = await res.json().catch(() => ({}));
     if (res.status === 409 && data.requiresConfirmation) {
       const ok = window.confirm(
-        `В ${data.itemCount} предмет(ах) есть незавершённые сборы. Сделать личным и отменить сборы?`,
+        tWishlist("confirmMakePrivate", { itemCount: data.itemCount }),
       );
       if (!ok) {
         setLoading(false);
@@ -1417,17 +1493,12 @@ function EditWishlistModal({
       const retry = await fetch(`/api/wishlists/${wishlist.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: fd.get("title"),
-          deadline: fd.get("deadline") || null,
-          isPublic: false,
-          confirm: true,
-        }),
+        body: JSON.stringify(patchBody(fd, { isPublic: false, confirm: true })),
       });
       data = await retry.json().catch(() => ({}));
       setLoading(false);
       if (!retry.ok) {
-        setError(data.error ?? "Ошибка");
+        setError(data.error ?? tErrors("generic"));
         return;
       }
       onDone();
@@ -1435,7 +1506,7 @@ function EditWishlistModal({
     }
     setLoading(false);
     if (!res.ok) {
-      setError(data.error ?? "Ошибка");
+      setError(data.error ?? tErrors("generic"));
       return;
     }
     onDone();
@@ -1444,11 +1515,11 @@ function EditWishlistModal({
   return (
     <ModalDialog onClose={onClose}>
         <h2 className="display-font mb-4 text-center text-sm md:text-base">
-          Редактировать вишлист
+          {t("editTitle")}
         </h2>
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label htmlFor="wishlist-edit-title" className="pixel-font mb-2 block text-xs">Название</label>
+            <label htmlFor="wishlist-edit-title" className="pixel-font mb-2 block text-xs">{t("name")}</label>
             <input
               id="wishlist-edit-title"
               name="title"
@@ -1458,7 +1529,7 @@ function EditWishlistModal({
             />
           </div>
           <div>
-            <label htmlFor="wishlist-edit-deadline" className="pixel-font mb-2 block text-xs">Дедлайн (необязательно)</label>
+            <label htmlFor="wishlist-edit-deadline" className="pixel-font mb-2 block text-xs">{t("deadline")}</label>
             <input
               id="wishlist-edit-deadline"
               name="deadline"
@@ -1466,6 +1537,28 @@ function EditWishlistModal({
               className="input-field"
               defaultValue={wishlist.deadline ?? ""}
             />
+          </div>
+          <div>
+            <label htmlFor="wishlist-edit-currency" className="pixel-font mb-2 block text-xs">
+              {tCurrency("label")}
+            </label>
+            <select
+              id="wishlist-edit-currency"
+              name="currency"
+              defaultValue={currentCurrency}
+              disabled={currencyLocked}
+              className="input-field"
+              title={currencyLocked ? tCurrency("lockedShort") : undefined}
+            >
+              {currencies.map((code) => (
+                <option key={code} value={code}>
+                  {tCurrency(code)}
+                </option>
+              ))}
+            </select>
+            <p className="mono-font mt-1 text-sm text-[#777]">
+              {currencyLocked ? tCurrency("locked") : tCurrency("hint")}
+            </p>
           </div>
           <label htmlFor="wishlist-edit-public" className="mono-font flex items-center gap-2 text-lg">
             <input
@@ -1475,7 +1568,7 @@ function EditWishlistModal({
               className="h-4 w-4 accent-black"
               defaultChecked={wishlist.isPublic}
             />
-            Публичный список
+            {t("publicList")}
           </label>
           {error && <p className="mono-font text-red-600">{error}</p>}
           <div className="flex gap-3">
@@ -1483,12 +1576,12 @@ function EditWishlistModal({
               type="submit"
               disabled={loading || !online}
               className="btn-primary flex-1"
-              title={!online ? "Нет соединения" : undefined}
+              title={!online ? tCommon("noConnection") : undefined}
             >
-              Сохранить
+              {tCommon("save")}
             </button>
             <button type="button" className="btn-secondary flex-1" onClick={onClose}>
-              Назад
+              {tCommon("back")}
             </button>
           </div>
         </form>
@@ -1515,6 +1608,9 @@ function ItemFormModal({
   const [productUrl, setProductUrl] = useState(item?.productUrl ?? "");
   const [preview, setPreview] = useState<string | null>(item?.imageUrl ?? null);
   const { online, requireOnline } = useNetwork();
+  const t = useTranslations("itemForm");
+  const tCommon = useTranslations("common");
+  const tErrors = useTranslations("errors");
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -1527,7 +1623,7 @@ function ItemFormModal({
 
     if (!trimmedName || Number.isNaN(priceNum) || priceNum < 0) {
       setLoading(false);
-      setError("Укажите название и цену");
+      setError(tErrors("nameAndPrice"));
       return;
     }
 
@@ -1539,9 +1635,7 @@ function ItemFormModal({
           item.status === "FUNDING" ||
           Number(item.amountCollected) > 0);
       if (risky) {
-        const ok = window.confirm(
-          "У этого подарка уже есть бронь/взносы — изменение цены может сбить прогресс сбора. Продолжить?",
-        );
+        const ok = window.confirm(t("confirmPriceChange"));
         if (!ok) {
           setLoading(false);
           return;
@@ -1562,7 +1656,7 @@ function ItemFormModal({
       const data = await res.json().catch(() => ({}));
       setLoading(false);
       if (!res.ok) {
-        setError(data.error ?? "Ошибка");
+        setError(data.error ?? tErrors("generic"));
         return;
       }
       onDone();
@@ -1582,7 +1676,7 @@ function ItemFormModal({
     const data = await res.json();
     setLoading(false);
     if (!res.ok) {
-      setError(data.error ?? "Ошибка");
+      setError(data.error ?? tErrors("generic"));
       return;
     }
     onDone();
@@ -1592,11 +1686,11 @@ function ItemFormModal({
     if (!file) return;
     setError(null);
     if (!file.type.startsWith("image/")) {
-      setError("Можно загрузить только изображение");
+      setError(tErrors("imageType"));
       return;
     }
     if (file.size > ITEM_IMAGE_MAX_INPUT_BYTES) {
-      setError("Файл слишком большой, попробуйте другое фото");
+      setError(tErrors("fileTooLarge"));
       return;
     }
     try {
@@ -1604,7 +1698,7 @@ function ItemFormModal({
       const dataUrl = await blobToDataUrl(compressed);
       setPreview(dataUrl);
     } catch {
-      setError("Не удалось обработать изображение");
+      setError(tErrors("imageProcessFailed"));
     }
   }
 
@@ -1652,11 +1746,11 @@ function ItemFormModal({
         )}
 
         <h2 className="display-font mb-5 text-center text-sm md:text-base">
-          {editing ? "Редактировать предмет" : "Добавить новый предмет"}
+          {editing ? t("editTitle") : t("addTitle")}
         </h2>
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label htmlFor="item-name" className="pixel-font mb-2 block text-xs">Название предмета</label>
+            <label htmlFor="item-name" className="pixel-font mb-2 block text-xs">{t("name")}</label>
             <input
               id="item-name"
               name="name"
@@ -1667,7 +1761,7 @@ function ItemFormModal({
             />
           </div>
           <div>
-            <label htmlFor="item-price" className="pixel-font mb-2 block text-xs">Цена</label>
+            <label htmlFor="item-price" className="pixel-font mb-2 block text-xs">{t("price")}</label>
             <input
               id="item-price"
               name="price"
@@ -1681,7 +1775,7 @@ function ItemFormModal({
             />
           </div>
           <div>
-            <label htmlFor="item-product-url" className="pixel-font mb-2 block text-xs">Ссылка на товар</label>
+            <label htmlFor="item-product-url" className="pixel-font mb-2 block text-xs">{t("productUrl")}</label>
             <input
               id="item-product-url"
               name="productUrl"
@@ -1691,13 +1785,13 @@ function ItemFormModal({
               onChange={(e) => setProductUrl(e.target.value)}
             />
             <p className="mono-font mt-2 text-xs leading-snug opacity-60">
-              Ссылка на товар (необязательно) — откроется в новой вкладке
+              {t("productUrlHint")}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             <label className="btn-secondary inline-flex cursor-pointer text-xs">
-              Загрузить своё фото
+              {t("uploadPhoto")}
               <input
                 type="file"
                 accept="image/*"
@@ -1711,7 +1805,7 @@ function ItemFormModal({
             {preview && (
               <Image
                 src={preview}
-                alt="Превью загруженного фото"
+                alt={t("photoPreviewAlt")}
                 width={64}
                 height={64}
                 unoptimized={preview.startsWith("data:")}
@@ -1726,12 +1820,12 @@ function ItemFormModal({
             type="submit"
             disabled={loading || !online}
             className="btn-primary w-full py-3"
-            title={!online ? "Нет соединения" : undefined}
+            title={!online ? tCommon("noConnection") : undefined}
           >
-            {editing ? "Сохранить изменения" : "+ Добавить предмет"}
+            {editing ? t("submitEdit") : t("submitAdd")}
           </button>
           <button type="button" className="btn-secondary w-full" onClick={onClose}>
-            Назад
+            {tCommon("back")}
           </button>
         </form>
     </ModalDialog>

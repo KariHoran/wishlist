@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import type { ClientItem } from "@/components/WishlistView";
+import { parseCurrency } from "@/i18n/config";
 
 export type SharedWishlistData = {
   id: string;
@@ -8,10 +9,14 @@ export type SharedWishlistData = {
   emoji: string | null;
   isPublic: boolean;
   ownerId: string;
+  currency: string;
   deadline: string | null;
   items: ClientItem[];
   itemCount: number;
 };
+
+/** Locale-independent placeholder — UI renders `common.anonymous`. */
+const ANONYMOUS_USER = { displayName: "", handle: "anon" };
 
 function mapSharedItems(
   items: {
@@ -56,7 +61,7 @@ function mapSharedItems(
     reservedById: item.reservedById,
     reservedBy: item.reservedBy
       ? item.reservationAnonymous
-        ? { id: item.reservedBy.id, displayName: "Аноним", handle: "anon" }
+        ? { id: item.reservedBy.id, ...ANONYMOUS_USER }
         : item.reservedBy
       : null,
     contributions: item.contributions.map((c) => ({
@@ -64,9 +69,7 @@ function mapSharedItems(
       amount: c.amount.toString(),
       message: c.message,
       isAnonymous: c.isAnonymous,
-      user: c.isAnonymous
-        ? { id: c.user.id, displayName: "Аноним", handle: "anon" }
-        : c.user,
+      user: c.isAnonymous ? { id: c.user.id, ...ANONYMOUS_USER } : c.user,
     })),
     contributorCount: item.contributions.length,
   }));
@@ -106,6 +109,7 @@ async function loadSharedWishlist(
     emoji: wishlist.emoji,
     isPublic: wishlist.isPublic,
     ownerId: wishlist.ownerId,
+    currency: parseCurrency(wishlist.currency),
     deadline: wishlist.deadline
       ? wishlist.deadline.toISOString().slice(0, 10)
       : null,

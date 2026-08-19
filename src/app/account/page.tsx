@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { auth, signOut } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/Navbar";
@@ -9,6 +10,8 @@ export default async function AccountPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
+  const t = await getTranslations("account");
+
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (!user) redirect("/login");
 
@@ -16,7 +19,7 @@ export default async function AccountPage() {
     <div className="page-frame grid-bg">
       <Navbar avatarUrl={user.avatarUrl} displayName={user.displayName} />
       <main className="mx-auto max-w-lg px-4 py-6 md:px-8">
-        <h1 className="display-font mb-6 text-2xl">Аккаунт</h1>
+        <h1 className="display-font mb-6 text-2xl">{t("title")}</h1>
         <AccountForm
           displayName={user.displayName}
           handle={user.handle}
@@ -25,7 +28,7 @@ export default async function AccountPage() {
           emailNotificationsEnabled={user.emailNotificationsEnabled}
         />
         <Link href="/account/refunds" className="btn-secondary mt-6 block w-full text-center">
-          Возвраты
+          {t("refunds")}
         </Link>
         <form
           className="mt-6"
@@ -35,7 +38,7 @@ export default async function AccountPage() {
           }}
         >
           <button type="submit" className="btn-secondary w-full">
-            Выйти
+            {t("signOut")}
           </button>
         </form>
       </main>

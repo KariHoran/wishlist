@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { FormEvent, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Logo } from "@/components/Logo";
 import { PasswordInput } from "@/components/PasswordInput";
 import { DecorImage } from "@/components/DecorImage";
@@ -10,6 +11,9 @@ import { useNetwork } from "@/components/NetworkProvider";
 
 export default function RegisterPage() {
   const { online, requireOnline } = useNetwork();
+  const t = useTranslations("auth");
+  const tCommon = useTranslations("common");
+  const tErrors = useTranslations("errors");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -31,7 +35,7 @@ export default function RegisterPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Ошибка");
+        setError(data.error ?? tErrors("generic"));
         setLoading(false);
         return;
       }
@@ -52,15 +56,15 @@ export default function RegisterPage() {
         (typeof loginResult !== "string" &&
           (loginResult.error || loginResult.ok === false))
       ) {
-        setError("Аккаунт создан, но войти не удалось — попробуйте на странице входа");
+        setError(t("registerThenLoginFailed"));
         return;
       }
       window.location.assign("/dashboard");
     } catch (err) {
       setError(
         err instanceof Error && err.message === "timeout"
-          ? "Не удалось войти, попробуйте снова"
-          : "Сеть недоступна",
+          ? t("loginFailed")
+          : t("networkUnavailable"),
       );
     } finally {
       setLoading(false);
@@ -109,44 +113,44 @@ export default function RegisterPage() {
       <main className="relative z-10 mx-auto flex min-h-[calc(100dvh-10px)] w-full max-w-md flex-col items-center justify-center px-4 py-10">
         <Logo size="lg" href={null} priority />
         <p className="pixel-font mt-3 mb-8 text-center text-xs md:text-sm">
-          Welcome back! Let&apos;s check your wishes
+          {t("registerTagline")}
         </p>
 
         <form onSubmit={onSubmit} className="hard-border shadow-offset w-full space-y-5 bg-white p-5 md:p-6">
           <div>
             <label htmlFor="email" className="pixel-font mb-2 block text-sm">
-              Email
+              {t("email")}
             </label>
             <input
               id="email"
               name="email"
               type="email"
               required
-              placeholder="Ваша почта"
+              placeholder={t("emailPlaceholder")}
               className="input-field"
               autoComplete="email"
             />
           </div>
           <div>
             <label htmlFor="password" className="pixel-font mb-2 block text-sm">
-              Пароль
+              {t("password")}
             </label>
             <PasswordInput
               id="password"
               name="password"
-              placeholder="Ваш пароль"
+              placeholder={t("passwordPlaceholder")}
               autoComplete="new-password"
               required
             />
           </div>
           <div>
             <label htmlFor="passwordConfirm" className="pixel-font mb-2 block text-sm">
-              Повторите пароль
+              {t("passwordConfirm")}
             </label>
             <PasswordInput
               id="passwordConfirm"
               name="passwordConfirm"
-              placeholder="Повторите пароль"
+              placeholder={t("passwordConfirmPlaceholder")}
               autoComplete="new-password"
               required
             />
@@ -154,14 +158,19 @@ export default function RegisterPage() {
 
           {error && <p className="mono-font text-base text-red-600">{error}</p>}
 
-          <button type="submit" disabled={loading || !online} className="btn-primary w-full py-3 text-base" title={!online ? "Нет соединения" : undefined}>
-            {loading ? "..." : "Регистрация"}
+          <button
+            type="submit"
+            disabled={loading || !online}
+            className="btn-primary w-full py-3 text-base"
+            title={!online ? tCommon("noConnection") : undefined}
+          >
+            {loading ? tCommon("loading") : t("submitRegister")}
           </button>
 
           <p className="mono-font text-center text-lg text-[#777]">
-            Уже есть аккаунт?{" "}
+            {t("hasAccount")}{" "}
             <Link href="/login" className="underline underline-offset-4 leading-normal">
-              Войти
+              {tCommon("signIn")}
             </Link>
           </p>
         </form>

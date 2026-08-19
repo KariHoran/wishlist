@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 export function PasswordInput({
   id,
@@ -15,6 +16,7 @@ export function PasswordInput({
   autoComplete?: string;
   required?: boolean;
 }) {
+  const t = useTranslations("auth");
   const [show, setShow] = useState(false);
   return (
     <div className="relative">
@@ -29,7 +31,7 @@ export function PasswordInput({
       />
       <button
         type="button"
-        aria-label={show ? "Скрыть пароль" : "Показать пароль"}
+        aria-label={show ? t("hidePassword") : t("showPassword")}
         onClick={() => setShow((s) => !s)}
         className="absolute top-1/2 right-3 -translate-y-1/2 pixel-font text-xs"
       >

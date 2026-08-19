@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/Navbar";
@@ -10,6 +11,8 @@ import { FriendsList } from "@/components/FriendsList";
 export default async function FriendsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
+
+  const t = await getTranslations("friends");
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -80,7 +83,7 @@ export default async function FriendsPage() {
     <div className="page-frame grid-bg">
       <Navbar avatarUrl={user.avatarUrl} displayName={user.displayName} />
       <main className="mx-auto max-w-6xl px-4 py-6 md:px-8">
-        <h1 className="display-font mb-6 text-2xl md:text-3xl">Друзья</h1>
+        <h1 className="display-font mb-6 text-2xl md:text-3xl">{t("title")}</h1>
         <AddFriendForm />
 
         <div className="mt-8">
@@ -98,7 +101,7 @@ export default async function FriendsPage() {
           />
         </div>
 
-        <h2 className="pixel-font mb-3 text-sm">Мои друзья</h2>
+        <h2 className="pixel-font mb-3 text-sm">{t("myFriends")}</h2>
         <FriendsList initialFriends={friendCards} />
       </main>
     </div>

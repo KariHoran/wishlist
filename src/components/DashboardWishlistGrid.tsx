@@ -3,11 +3,18 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { ModalDialog } from "@/components/ModalDialog";
 import { ProgressBar } from "@/components/ProgressBar";
 import { RetroInlineState } from "@/components/RetroState";
 import { useNetwork } from "@/components/NetworkProvider";
-import { formatRub } from "@/lib/money";
+import { formatCurrency } from "@/lib/money";
+import {
+  bcp47,
+  defaultCurrency,
+  type AppLocale,
+  type WishlistCurrency,
+} from "@/i18n/config";
 
 type WishlistCard = {
   id: string;
@@ -15,6 +22,7 @@ type WishlistCard = {
   deadline: string | null;
   progressPercent: number;
   itemCount: number;
+  currency: WishlistCurrency;
 };
 
 type ConfirmModal = {
@@ -22,10 +30,19 @@ type ConfirmModal = {
   itemCount: number;
   contributorCount: number;
   totalAmount: number;
+  currency: WishlistCurrency;
 };
 
-export function DashboardWishlistGrid({ wishlists }: { wishlists: WishlistCard[] }) {
+export function DashboardWishlistGrid({
+  wishlists,
+}: {
+  wishlists: WishlistCard[];
+}) {
   const router = useRouter();
+  const locale = useLocale() as AppLocale;
+  const t = useTranslations("dashboard");
+  const tCommon = useTranslations("common");
+  const tErrors = useTranslations("errors");
   const { online, requireOnline } = useNetwork();
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [busy, setBusy] = useState(false);
@@ -33,6 +50,15 @@ export function DashboardWishlistGrid({ wishlists }: { wishlists: WishlistCard[]
 
   const selectedIds = useMemo(() => [...selected], [selected]);
   const allSelected = wishlists.length > 0 && selected.size === wishlists.length;
+
+  function currencyForSelected(): WishlistCurrency {
+    return wishlists.find((w) => selected.has(w.id))?.currency ?? defaultCurrency;
+  }
+
+  function formatDeadline(deadline: string | null) {
+    if (!deadline) return tCommon("forever");
+    return new Date(deadline).toLocaleDateString(bcp47(locale)).replace(/\//g, ".");
+  }
 
   function toggleOne(id: string) {
     setSelected((prev) => {
@@ -68,12 +94,13 @@ export function DashboardWishlistGrid({ wishlists }: { wishlists: WishlistCard[]
         itemCount: data.itemCount,
         contributorCount: data.contributorCount,
         totalAmount: data.totalAmount,
+        currency: currencyForSelected(),
       });
       return;
     }
 
     if (!res.ok) {
-      alert("Ошибка удаления");
+      alert(tErrors("deleteFailed"));
       return;
     }
 
@@ -85,10 +112,7 @@ export function DashboardWishlistGrid({ wishlists }: { wishlists: WishlistCard[]
   if (wishlists.length === 0) {
     return (
       <div className="mt-8">
-        <RetroInlineState
-          title="Пока пусто"
-          message="У вас пока нет вишлистов — создайте первый."
-        />
+        <RetroInlineState title={t("emptyTitle")} message={t("emptyMessage")} />
       </div>
     );
   }
@@ -102,19 +126,19 @@ export function DashboardWishlistGrid({ wishlists }: { wishlists: WishlistCard[]
             className="h-3.5 w-3.5 accent-black"
             checked={allSelected}
             onChange={toggleAll}
-            aria-label="Выбрать все вишлисты"
+            aria-label={t("selectAllAria")}
           />
-          {allSelected ? "Снять выбор" : "Выбрать все"}
+          {allSelected ? t("deselectAll") : t("selectAll")}
         </label>
         {selected.size > 0 && (
           <button
             type="button"
             className="pixel-font text-[10px] text-[#666] underline underline-offset-4 md:text-xs"
             disabled={busy || !online}
-            title={!online ? "Нет соединения" : undefined}
+            title={!online ? tCommon("noConnection") : undefined}
             onClick={() => void deleteSelected()}
           >
-            Удалить выбранные ({selected.size})
+            {t("deleteSelected", { count: selected.size })}
           </button>
         )}
       </div>
@@ -133,23 +157,19 @@ export function DashboardWishlistGrid({ wishlists }: { wishlists: WishlistCard[]
                   className="h-4 w-4 accent-black"
                   checked={checked}
                   onChange={() => toggleOne(w.id)}
-                  aria-label={`Выбрать «${w.title}»`}
+                  aria-label={t("selectOneAria", { title: w.title })}
                 />
               </label>
               <h2 className="pixel-font pr-8 text-base leading-relaxed">{w.title}</h2>
-              <p className="mono-font mt-1 text-lg text-[#555]">
-                {w.deadline
-                  ? new Date(w.deadline).toLocaleDateString("sv-SE").replace(/-/g, ".")
-                  : "Бессрочно"}
-              </p>
+              <p className="mono-font mt-1 text-lg text-[#555]">{formatDeadline(w.deadline)}</p>
               <div className="mt-3">
                 <ProgressBar percent={w.progressPercent} height={14} />
               </div>
               <p className="mono-font mt-2 mb-4 text-base">
-                {w.progressPercent}% собрано · {w.itemCount} предметов
+                {t("itemsCollected", { percent: w.progressPercent, count: w.itemCount })}
               </p>
               <Link href={`/wishlist/${w.id}`} className="btn-primary mt-auto w-full">
-                Открыть
+                {tCommon("open")}
               </Link>
             </article>
           );
@@ -158,12 +178,18 @@ export function DashboardWishlistGrid({ wishlists }: { wishlists: WishlistCard[]
 
       {confirmModal && (
         <ModalDialog onClose={() => setConfirmModal(null)}>
-          <h2 className="display-font mb-4 text-center text-sm">Внимание</h2>
+          <h2 className="display-font mb-4 text-center text-sm">{tCommon("attention")}</h2>
           <p className="mono-font mb-4 text-lg leading-relaxed">
-            Удаляется {confirmModal.wishlistCount} вишлист(ов). В {confirmModal.itemCount}{" "}
-            предмет(ах) есть незавершённые сборы ({confirmModal.contributorCount}{" "}
-            участник(ов), всего {formatRub(confirmModal.totalAmount)}). Сборы будут отменены —
-            деньги нужно вернуть вручную. Продолжить?
+            {t("bulkDeleteBody", {
+              wishlistCount: confirmModal.wishlistCount,
+              itemCount: confirmModal.itemCount,
+              contributorCount: confirmModal.contributorCount,
+              amount: formatCurrency(
+                confirmModal.totalAmount,
+                confirmModal.currency,
+                locale,
+              ),
+            })}
           </p>
           <div className="flex gap-3">
             <button
@@ -172,14 +198,14 @@ export function DashboardWishlistGrid({ wishlists }: { wishlists: WishlistCard[]
               disabled={busy}
               onClick={() => void deleteSelected(true)}
             >
-              Продолжить
+              {tCommon("continue")}
             </button>
             <button
               type="button"
               className="btn-secondary flex-1"
               onClick={() => setConfirmModal(null)}
             >
-              Назад
+              {tCommon("back")}
             </button>
           </div>
         </ModalDialog>

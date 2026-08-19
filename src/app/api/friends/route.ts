@@ -8,11 +8,12 @@ import {
   validateFriendRequestSend,
 } from "@/lib/friend-requests";
 import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { jsonError, translateErrorKey } from "@/lib/api-response";
 
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonError("unauthorized", 401);
   }
 
   const me = session.user.id;
@@ -44,17 +45,16 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonError("unauthorized", 401);
   }
   const me = session.user.id;
   Sentry.setUser({ id: me });
   Sentry.setTag("route", "friends_request");
   const limit = await enforceRateLimit(RATE_LIMITS.friendRequest, me);
   if (!limit.ok) {
-    return NextResponse.json(limit.body, {
-      status: limit.status,
-      headers: { "Retry-After": String(limit.retryAfterSeconds) },
-    });
+    const res = await jsonError(limit.errorKey, limit.status);
+    res.headers.set("Retry-After", String(limit.retryAfterSeconds));
+    return res;
   }
 
   const body = await req.json();
@@ -63,15 +63,15 @@ export async function POST(req: Request) {
     .trim()
     .toLowerCase();
   if (!handle) {
-    return NextResponse.json({ error: "Укажите ник" }, { status: 400 });
+    return jsonError("handleRequired", 400);
   }
 
   const friend = await prisma.user.findUnique({ where: { handle } });
   if (!friend) {
-    return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 });
+    return jsonError("userNotFound", 404);
   }
   if (friend.id === me) {
-    return NextResponse.json({ error: "Нельзя добавить себя" }, { status: 400 });
+    return jsonError("cannotAddSelf", 400);
   }
   Sentry.setTag("friendId", friend.id);
 
@@ -96,22 +96,20 @@ export async function POST(req: Request) {
     outgoingPending: outgoing,
   });
   if (!validation.ok) {
-    return NextResponse.json(
-      {
-        error: validation.error,
-        ...(validation.needsAccept
-          ? {
-              needsAccept: true,
-              requestId: validation.requestId,
-              from: {
-                id: friend.id,
-                displayName: friend.displayName,
-                handle: friend.handle,
-              },
-            }
-          : {}),
-      },
-      { status: validation.statusCode },
+    return translateErrorKey(
+      validation,
+      validation.statusCode,
+      validation.needsAccept
+        ? {
+            needsAccept: true,
+            requestId: validation.requestId,
+            from: {
+              id: friend.id,
+              displayName: friend.displayName,
+              handle: friend.handle,
+            },
+          }
+        : undefined,
     );
   }
 
@@ -128,7 +126,7 @@ export async function POST(req: Request) {
   let request;
   if (prior) {
     if (prior.status === "PENDING") {
-      return NextResponse.json({ error: "Заявка уже отправлена" }, { status: 409 });
+      return jsonError("requestAlreadySent", 409);
     }
     request = await prisma.friendRequest.update({
       where: { id: prior.id },
@@ -141,7 +139,7 @@ export async function POST(req: Request) {
   }
 
   await createNotification(friend.id, "FRIEND_REQUEST_RECEIVED", {
-    actorName: meUser?.displayName ?? "Кто-то",
+    actorName: meUser?.displayName,
     actorHandle: meUser?.handle,
     requestId: request.id,
   });

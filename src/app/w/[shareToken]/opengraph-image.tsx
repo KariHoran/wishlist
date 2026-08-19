@@ -1,9 +1,10 @@
 import { ImageResponse } from "next/og";
 import { prisma } from "@/lib/prisma";
-import { wishlistProgress } from "@/lib/money";
+import { formatDate, wishlistProgress } from "@/lib/money";
+import { getRequestLocale, tSync } from "@/lib/i18n-server";
 
 export const runtime = "nodejs"; // needs Prisma
-export const revalidate = 300; // 5 minutes
+export const dynamic = "force-dynamic";
 export const alt = "✦ Wishlist";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -30,6 +31,7 @@ export default async function Image({
   });
 
   const fontData = await fetchFont();
+  const locale = await getRequestLocale();
 
   // Neutral fallback for private or missing wishlists
   if (!wishlist || !wishlist.isPublic) {
@@ -57,7 +59,7 @@ export default async function Image({
               display: "flex",
             }}
           >
-            ✦ Этот список недоступен
+            {tSync("og", "unavailable", locale)}
           </div>
         </div>
       ),
@@ -71,11 +73,16 @@ export default async function Image({
   const { percent, collected } = wishlistProgress(wishlist.items);
   const total = wishlist.items.length;
   const deadlineStr = wishlist.deadline
-    ? new Date(wishlist.deadline).toLocaleDateString("ru-RU", {
+    ? formatDate(wishlist.deadline, locale, {
         day: "numeric",
         month: "long",
         year: "numeric",
       })
+    : null;
+  const collectedLabel = tSync("og", "collected", locale, { percent });
+  const itemsLabel = tSync("og", "items", locale, { collected, total });
+  const untilLabel = deadlineStr
+    ? tSync("og", "until", locale, { date: deadlineStr })
     : null;
 
   const BAR_WIDTH = 800;
@@ -238,13 +245,11 @@ export default async function Image({
                 color: "#333",
               }}
             >
-              <span style={{ display: "flex" }}>{percent}% собрано</span>
-              <span style={{ display: "flex" }}>
-                {collected}/{total} предметов
-              </span>
-              {deadlineStr && (
+              <span style={{ display: "flex" }}>{collectedLabel}</span>
+              <span style={{ display: "flex" }}>{itemsLabel}</span>
+              {untilLabel && (
                 <span style={{ display: "flex", color: "#888" }}>
-                  до {deadlineStr}
+                  {untilLabel}
                 </span>
               )}
             </div>

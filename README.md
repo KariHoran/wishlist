@@ -4,72 +4,118 @@
 [![Deployed on Vercel](https://img.shields.io/badge/deployed-Vercel-black?logo=vercel)](https://wishlist-ashy-three.vercel.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Y2K-inspired wishlist app for sharing gift ideas with friends: reserve surprises, run group funding (including fixed split «складчина»), and see updates in real time — without spoiling who bought what.
+Y2K-inspired wishlist app for sharing gift ideas with friends: reserve surprises, run group funding (including fixed-split «складчина»), and get live updates — without spoiling who bought what.
 
-**Live demo:** [wishlist-ashy-three.vercel.app](https://wishlist-ashy-three.vercel.app)
+**Live demo:** [https://wishlist-ashy-three.vercel.app](https://wishlist-ashy-three.vercel.app)
 
-## Demo flow (GIF)
+## Demo
 
-> **Record this manually** (ScreenToGif, Kap, or OS screen recorder) and drop the file at `docs/demo-realtime.gif`:
+| Login | Dashboard | Wishlist |
+|-------|-----------|----------|
+| ![Login](docs/login.png) | ![Dashboard](docs/dashboard.png) | ![Wishlist](docs/wishlist.png) |
+
+### Realtime reservation GIF
+
+> Drop the recording at `docs/demo-realtime.gif`, then uncomment the image below.
 >
-> 1. User A (owner) opens a public wishlist and adds an item.
-> 2. User B (friend/guest) opens the same list in another browser/incognito.
-> 3. User B clicks **Зарезервировать** on an available item.
-> 4. User A's tab updates in real time — item shows **💡 Забронировано**, but **without** revealing User B's name (surprise mode).
+> **How to record (ScreenToGif / Kap / OBS) — two windows side by side:**
 >
-> Then embed:
+> 1. **Left window (owner):** log in as account A → create a **public** wishlist → add one item → leave the wishlist page open.
+> 2. **Right window (guest):** incognito / second browser → log in as account B → open the same wishlist (friends list or public share link `/w/...`).
+> 3. On the right, open the item → click **Зарезервировать** → confirm.
+> 4. On the left, the card flips to **💡 Забронировано** in real time — **without** showing B’s name (surprise mode).
 >
-> ```markdown
-> ![Realtime reservation demo](docs/demo-realtime.gif)
-> ```
+> Suggested length: 10–20 seconds. Export as GIF (~800–1200px wide).
+
+<!-- ![Realtime reservation demo](docs/demo-realtime.gif) -->
+
+### Demo accounts (seed only)
+
+After `npm run db:seed`, you can use:
+
+| Email | Password |
+|-------|----------|
+| `demo@wishlist.app` | `password123` |
+| `katya@wishlist.app`, `anya@wishlist.app`, … | same password |
+
+These are **test fixtures only** — no real payments, no personal data. Change or delete them before any non-demo use.
 
 ## Stack
 
 | Layer | Tech |
 |-------|------|
-| Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4 |
-| Backend | Next.js API Routes, NextAuth.js (credentials) |
-| Database | PostgreSQL (Neon in prod, Docker locally), Prisma ORM |
-| Real-time | Server-Sent Events (+ optional Pusher) |
-| Storage | Vercel Blob for avatars |
-| Hosting | Vercel |
-| Testing | Vitest (unit + integration), Playwright (E2E) |
+| App | **Next.js 16** (App Router), React 19, TypeScript, Tailwind CSS 4 |
+| Auth | Auth.js / NextAuth v5 (credentials + JWT sessions) |
+| Data | Prisma + PostgreSQL (Neon in production, Docker locally) |
+| Hosting | Vercel (app hosting, Blob storage, Cron) |
+| Real-time | **Server-Sent Events** by default; optional **Pusher** when keys are set |
+| Email | Resend |
+| Observability | Sentry (`@sentry/nextjs`) |
+| Rate limits | `@upstash/ratelimit` (+ Redis in prod; in-memory fallback) |
+| Tests | Vitest (unit/integration), Playwright (E2E) |
 | CI | GitHub Actions |
 
-## Key technical decisions
+## Features
 
-- **Surprise mode for owners** — the wishlist owner never sees *who* reserved or contributed, only that it happened (and optional anonymous messages). Real `userId` is still stored for un-reserve/refunds/admin.
-- **Race-safe reservation** — concurrent `PATCH reserve` calls use `updateMany` with `status: AVAILABLE` guard inside a validated flow, so only one guest wins; the other gets `409`.
-- **Fixed-split funding** — `Math.ceil(price / N)` per person, last participant pays the remainder; collection auto-closes when `splitParticipants` is reached.
-- **Pure business logic** — status transitions, split math, and progress live in `src/lib/*` with Vitest coverage, not buried in React components.
-- **Vercel Blob for avatars** — avoids huge base64 strings in JWT/session cookies (which caused HTTP/2 errors when avatars lived in the DB token).
-- **SSE-first realtime** — works without Pusher credentials; Pusher is an optional upgrade for scale.
+- **Reserve & fund gifts** — one-person reserve or free-form contributions
+- **Fixed split («складчина на N»)** — equal shares, auto-close when N people join; 4th attempt blocked with a clear message
+- **Anonymous congratulations** — optional message + «Отправить анонимно»; others see «Аноним», not the real name
+- **Public / private wishlists** — private lists stay owner-only; public lists are shareable
+- **Friends** — request by handle → accept/decline → mutual list; remove is mutual
+- **Public invite links** (`/w/[shareToken]`) — view without an account; reserve redirects to register and returns to the same list; «Обновить ссылку» invalidates the old token
+- **Refund tracking** — cancelling a funded item warns the owner, creates refund rows, notifies contributors; «Отметить как возвращено» clears the queue
+- **In-app + email notifications** — bell/SSE feed; Resend emails with an account toggle
+- **Deadline reminders** — daily Vercel Cron → `/api/cron/deadline-reminders`
+- **PWA** — installable (`manifest` + service worker), works as a standalone app
+- **OG previews** — dynamic Open Graph images with title + progress bar for share links
+- **Security baseline** — CSP and related headers, auth rate limiting, bcrypt passwords
+
+## Design decisions
+
+1. **Surprise mode for owners** — the owner never learns *who* reserved or chipped in (UI and notification copy). Real `userId` is still stored for un-reserve, refunds, and integrity.
+2. **Race-safe reservation** — concurrent reserves use Prisma `updateMany` with `status: AVAILABLE` as a guard so only one guest wins; others get `409`.
+3. **ISR on public share pages** — `/w/[shareToken]` is `force-static` + `revalidate` so the CDN can cache HTML. Cold Neon hits used to cost multi-second TTFB; cached share pages load in hundreds of milliseconds. Auth personalization hydrates on the client.
+4. **CSP with `unsafe-inline` / `unsafe-eval` in `script-src`** — intentional trade-off for Next.js App Router hydration and the image optimizer; still locks down `object-src`, `frame-ancestors`, and third-party connect targets (Sentry, Blob, Unsplash).
+5. **Avatars on Vercel Blob, not in the JWT** — large `data:` URLs in session cookies broke HTTP/2 (`ERR_HTTP2_PROTOCOL_ERROR`); slim tokens + Blob URLs fix it.
+6. **SSE-first realtime** — works with zero third-party keys; Pusher is an optional scale path when env vars are present.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
   subgraph Client
-    UI[Next.js React UI]
-    SSE[SSE / Pusher client]
+    UI[Next.js UI / PWA]
+    SSE[EventSource SSE]
+    PusherJS[Pusher JS optional]
   end
 
-  subgraph Server
-    API[API Routes]
-    Auth[NextAuth JWT]
-    RT[Realtime publisher]
+  subgraph Vercel["Vercel"]
+    API[App Router + API routes]
+    Auth[Auth.js JWT]
+    Cron[Cron: deadline-reminders]
+    Blob[(Vercel Blob)]
   end
 
   DB[(PostgreSQL / Neon)]
-  Blob[(Vercel Blob)]
+  Sentry[Sentry]
+  Resend[Resend]
+  Upstash[(Upstash Redis)]
+  PusherAPI[Pusher API]
 
   UI --> API
   UI --> SSE
+  UI -.-> PusherJS
   API --> Auth
   API --> DB
-  API --> RT
-  RT --> SSE
   API --> Blob
+  API --> SSE
+  API -.-> PusherAPI
+  PusherAPI -.-> PusherJS
+  Cron --> API
+  API --> Resend
+  API --> Sentry
+  UI --> Sentry
+  API -.-> Upstash
 ```
 
 ## Local setup
@@ -77,25 +123,25 @@ flowchart LR
 ```bash
 git clone https://github.com/KariHoran/wishlist.git
 cd wishlist
-cp .env.example .env.local   # or .env
-npm run db:up                # Docker Postgres on :5432
+cp .env.example .env.local
+npm run db:up          # Docker Postgres on :5432
 npm install
 npx prisma migrate dev
-npm run db:seed              # optional demo data
-npm run dev                  # http://localhost:3000
+npm run db:seed        # optional demo users + lists
+npm run dev            # http://localhost:3000
 ```
 
-Demo login after seed: `demo@wishlist.app` / `password123`
+Minimum env for local: `DATABASE_URL`, `AUTH_SECRET`, `NEXTAUTH_URL`. Everything else is optional (see `.env.example`).
 
 ### Tests
 
 ```bash
-npm test              # Vitest unit + integration (integration in CI / RUN_INTEGRATION_TESTS=1)
+npm test                 # Vitest unit (+ integration when RUN_INTEGRATION_TESTS=1)
 npm run test:coverage
-npm run test:e2e      # Playwright (starts dev server automatically)
+npm run test:e2e         # Playwright; starts `npm run dev` unless PLAYWRIGHT_BASE_URL is set
 ```
 
-Integration tests need Postgres (`npm run db:up`) and:
+Integration tests need Postgres:
 
 ```bash
 # PowerShell
@@ -104,33 +150,31 @@ $env:TEST_DATABASE_URL="postgresql://wishlist:wishlist@localhost:5432/wishlist_t
 npm test
 ```
 
-Create the test database once:
+Create the test DB once (container name may differ — check `docker ps`):
 
 ```bash
 docker exec -it wishlist-db-1 psql -U wishlist -c "CREATE DATABASE wishlist_test;"
 ```
 
-*(Container name may differ — check `docker ps`.)*
+### CI
 
-## CI / Deploy
-
-GitHub Actions (`.github/workflows/ci.yml`) on every push/PR to `main`:
+On every push/PR to `main`, GitHub Actions (`.github/workflows/ci.yml`) runs:
 
 1. `npm ci`
-2. `npm run lint`
-3. `tsc --noEmit`
-4. `npm test` (with Postgres service)
+2. Lint + `tsc --noEmit`
+3. `prisma migrate deploy` against a Postgres service
+4. `npm test`
 5. `npm run build`
 
-**Gate production deploys:** in Vercel → Project → Settings → Git → enable **Deployment Protection** / require the `CI` check to pass before promoting to production. This prevents broken builds from reaching prod.
+> **Note:** if the GitHub repository is private, the Actions badge and workflow URL return 404 for anonymous viewers. Make the repo public for a portfolio, or keep the badge as an owner-facing link.
 
 ## Roadmap
 
-- Email/push notifications (not just in-app bell)
-- Shareable invite links for wishlists (no friend request required)
-- OG/Twitter preview cards for public wishlist URLs
-- Payment provider integration (Stripe/YooKassa) instead of honour-system contributions
-- Playwright E2E job in CI against preview deployments
+- **Marketplace image scraping** — skipped: major shops block bots; product URL is stored as a plain link instead
+- **Real money rails** — Stripe / YooKassa instead of honour-system contributions + manual refunds
+- **Wishlist change history** — audit log of edits, cancels, and funding events
+- **Web Push** — mobile/desktop push alongside email (PWA shell is already there)
+- **E2E in CI** — Playwright against preview deployments once a stable preview URL is wired
 
 ## License
 

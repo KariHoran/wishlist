@@ -6,11 +6,12 @@ import {
   cancelWishlistPendingItems,
   pendingRefundSummary,
 } from "@/lib/cancellations";
+import { jsonError } from "@/lib/api-response";
 
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonError("unauthorized", 401);
   }
 
   const body = await req.json();
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
     ? body.ids.filter((id: unknown): id is string => typeof id === "string")
     : [];
   if (ids.length === 0) {
-    return NextResponse.json({ error: "Укажите вишлисты" }, { status: 400 });
+    return jsonError("selectWishlists", 400);
   }
 
   const wishlists = await prisma.wishlist.findMany({
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
     },
   });
   if (wishlists.length !== ids.length) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return jsonError("forbidden", 403);
   }
 
   const confirm = body.confirm === true;

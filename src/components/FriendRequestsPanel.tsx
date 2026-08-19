@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useNetwork } from "@/components/NetworkProvider";
 import { RetroInlineState } from "@/components/RetroState";
 
@@ -34,6 +35,10 @@ export function FriendRequestsPanel({
 }) {
   const router = useRouter();
   const { online, requireOnline } = useNetwork();
+  const t = useTranslations("friendRequests");
+  const tNav = useTranslations("nav");
+  const tCommon = useTranslations("common");
+  const tErrors = useTranslations("errors");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [localIncoming, setLocalIncoming] = useState(incoming);
   const [localOutgoing, setLocalOutgoing] = useState(outgoing);
@@ -66,7 +71,7 @@ export function FriendRequestsPanel({
       const data = await res.json().catch(() => ({}));
       setLocalIncoming(prevIncoming);
       setLocalOutgoing(prevOutgoing);
-      alert(data.error ?? "Ошибка");
+      alert(data.error ?? tErrors("generic"));
       return;
     }
     router.refresh();
@@ -74,10 +79,7 @@ export function FriendRequestsPanel({
 
   if (localIncoming.length === 0 && localOutgoing.length === 0) {
     return (
-      <RetroInlineState
-        title="Заявок пока нет"
-        message="Когда кто-то отправит запрос в друзья, он появится здесь."
-      />
+      <RetroInlineState title={t("emptyTitle")} message={t("emptyMessage")} />
     );
   }
 
@@ -85,7 +87,7 @@ export function FriendRequestsPanel({
     <div className="mb-8 space-y-6">
       {localIncoming.length > 0 && (
         <section>
-          <h2 className="pixel-font mb-3 text-sm">Входящие заявки</h2>
+          <h2 className="pixel-font mb-3 text-sm">{t("incoming")}</h2>
           <ul className="space-y-3">
             {localIncoming.map((r) => (
               <li
@@ -95,7 +97,7 @@ export function FriendRequestsPanel({
                 <div className="flex min-w-0 items-center gap-3">
                   <Image
                     src={r.from.avatarUrl || "/decor/avatar-halftone-cat.png"}
-                    alt={`Аватар пользователя ${r.from.displayName}`}
+                    alt={tNav("avatarAlt", { name: r.from.displayName })}
                     width={40}
                     height={40}
                     className="h-10 w-10 shrink-0 rounded-full border-2 border-black object-cover"
@@ -110,19 +112,19 @@ export function FriendRequestsPanel({
                     type="button"
                     className="btn-primary text-xs"
                     disabled={busyId === r.id || !online}
-                    title={!online ? "Нет соединения" : undefined}
+                    title={!online ? tCommon("noConnection") : undefined}
                     onClick={() => act(r.id, "accept")}
                   >
-                    Принять
+                    {t("accept")}
                   </button>
                   <button
                     type="button"
                     className="btn-secondary text-xs"
                     disabled={busyId === r.id || !online}
-                    title={!online ? "Нет соединения" : undefined}
+                    title={!online ? tCommon("noConnection") : undefined}
                     onClick={() => act(r.id, "decline")}
                   >
-                    Отклонить
+                    {t("decline")}
                   </button>
                 </div>
               </li>
@@ -133,7 +135,7 @@ export function FriendRequestsPanel({
 
       {localOutgoing.length > 0 && (
         <section>
-          <h2 className="pixel-font mb-3 text-sm">Исходящие заявки</h2>
+          <h2 className="pixel-font mb-3 text-sm">{t("outgoing")}</h2>
           <ul className="space-y-3">
             {localOutgoing.map((r) => (
               <li
@@ -143,7 +145,7 @@ export function FriendRequestsPanel({
                 <div className="flex min-w-0 items-center gap-3">
                   <Image
                     src={r.to.avatarUrl || "/decor/avatar-halftone-cat.png"}
-                    alt={`Аватар пользователя ${r.to.displayName}`}
+                    alt={tNav("avatarAlt", { name: r.to.displayName })}
                     width={40}
                     height={40}
                     className="h-10 w-10 shrink-0 rounded-full border-2 border-black object-cover"
@@ -151,17 +153,17 @@ export function FriendRequestsPanel({
                   <div className="min-w-0">
                     <p className="pixel-font truncate text-xs">{r.to.displayName}</p>
                     <p className="mono-font text-base text-[#666]">@{r.to.handle}</p>
-                    <p className="mono-font text-sm text-[#999]">Ожидает ответа</p>
+                    <p className="mono-font text-sm text-[#999]">{t("pending")}</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   className="btn-secondary text-xs"
                   disabled={busyId === r.id || !online}
-                  title={!online ? "Нет соединения" : undefined}
+                  title={!online ? tCommon("noConnection") : undefined}
                   onClick={() => act(r.id, "cancel")}
                 >
-                  Отменить
+                  {t("cancel")}
                 </button>
               </li>
             ))}

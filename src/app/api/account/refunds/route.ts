@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { formatRub } from "@/lib/money";
+import { formatCurrency } from "@/lib/money";
+import { jsonError } from "@/lib/api-response";
+import { getUserLocale } from "@/lib/notifications";
+import { parseCurrency } from "@/i18n/config";
 
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonError("unauthorized", 401);
   }
+
+  const locale = await getUserLocale(session.user.id);
 
   const contributions = await prisma.contribution.findMany({
     where: {
@@ -23,7 +28,7 @@ export async function GET() {
         select: {
           id: true,
           name: true,
-          wishlist: { select: { id: true, title: true } },
+          wishlist: { select: { id: true, title: true, currency: true } },
         },
       },
     },
@@ -63,7 +68,11 @@ export async function GET() {
       displayName: c.user.displayName,
       handle: c.user.handle,
       amount: Number(c.amount),
-      amountFormatted: formatRub(Number(c.amount)),
+      amountFormatted: formatCurrency(
+        Number(c.amount),
+        parseCurrency(c.item.wishlist.currency),
+        locale,
+      ),
     });
   }
 
